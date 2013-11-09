@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -83,25 +83,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\PowerCode\CommandLineArg.cs">
-      <Link>CommandLineArg.cs</Link>
-    </Compile>
-    <Compile Include="..\PowerCode\CommandLineArguments.cs">
-      <Link>CommandLineArguments.cs</Link>
-    </Compile>
-    <Compile Include="..\PowerCode\EnvironmentVariables.cs">
-      <Link>EnvironmentVariables.cs</Link>
-    </Compile>
-    <Compile Include="..\PowerCode\StringExtensions.cs">
-      <Link>StringExtensions.cs</Link>
-    </Compile>
+    <Compile Include="CommandLine.cs" />
+    <Compile Include="EnvironmentVariables.cs" />
+    <Compile Include="StringExtensions.cs" />
     <Compile Include="fixeol.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist "C:\Kody\Root" xcopy "$(TargetPath)" "C:\Kody\Root" /y</PostBuildEvent>
+    <PostBuildEvent>if exist "%25UserProfile%25\Root" xcopy "$(TargetPath)" "%25UserProfile%25\Root" /y</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Label="Versioning">
     <VersioningMajor>1</VersioningMajor>
@@ -111,7 +102,7 @@
   <PropertyGroup>
     <GitBinPath>C:\Tools\Git\bin</GitBinPath>
   </PropertyGroup>
-  <UsingTask TaskName="GitVersion" AssemblyFile="c:\Kody\Root\GitVersion.dll" />
+  <UsingTask TaskName="GitVersion" AssemblyFile="c:\Tools\GitVersion.dll" />
   <Target Name="BeforeBuild">
     <GitVersion GitBinPath="$(GitBinPath)" CurrentPath="$(MSBuildProjectDirectory)">
       <Output TaskParameter="CommitVersion" PropertyName="CommitVersion" />
