@@ -298,7 +298,7 @@ namespace Bricksoft.DosToys
 
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("{0}.exe - {1}", envName, prodName);
-			Console.Out.WriteLine("Copyright (C) 2003-2012 Bricksoft.com. All Rights Reserved.");
+			Console.Out.WriteLine("Copyright (C) 2003-2012 Kody Brown.");
 			Console.Out.WriteLine("No warranties expressed or implied. Use at your own risk.");
 			Console.Out.WriteLine();
 
