@@ -86,6 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommandLine.cs" />
+    <Compile Include="EncodingExtensions.cs" />
     <Compile Include="EncodingType.cs" />
     <Compile Include="EnvironmentVariables.cs" />
     <Compile Include="StringExtensions.cs" />

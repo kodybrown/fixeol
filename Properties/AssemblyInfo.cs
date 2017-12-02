@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: System.Reflection.AssemblyTitle("fixeol ver:1.5.1711.1514")]
+[assembly: System.Reflection.AssemblyTitle("fixeol ver:1.5.1712.0212")]
 [assembly: System.Reflection.AssemblyDescription("fixes the eol (end of line) characters for the specified file(s).")]
 [assembly: System.Reflection.AssemblyCompany("Bricksoft.com")]
 [assembly: System.Reflection.AssemblyProduct("fixeol")]
@@ -16,7 +16,7 @@
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.CLSCompliant(false)]
 [assembly: System.Runtime.InteropServices.Guid("E8043946-8131-4319-B9EF-E36FA6726B2A")]
-[assembly: System.Reflection.AssemblyVersion("1.5.1711.1514")]
-[assembly: System.Reflection.AssemblyFileVersion("1.5.1711.1514")]
+[assembly: System.Reflection.AssemblyVersion("1.5.1712.0212")]
+[assembly: System.Reflection.AssemblyFileVersion("1.5.1712.0212")]
 
 

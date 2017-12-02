@@ -285,31 +285,26 @@ namespace Bricksoft.DosToys
 
 				try {
 					using (StreamReader r = File.OpenText(backupfile)) {
-						using (StreamWriter w = File.CreateText(filename)) {
-							while (!r.EndOfStream) {
-								line = r.ReadLine();
+						Encoding encoding = r.BaseStream.DetectEncoding();
+						//Console.WriteLine($"encoding={encoding}");
 
-								//// replace the newline characters..
-								//while (line.IndexOf("\\\\n", StringComparison.InvariantCulture) > -1) {
-								//   line = line.Replace("\\\\n", "\\n");
-								//}
+						using (FileStream outStream = File.Create(filename)) {
+							using (StreamWriter writer = new StreamWriter(outStream, encoding)) {
+								while (!r.EndOfStream) {
+									line = r.ReadLine();
 
-								w.Write(line + NewLine);
+									writer.Write(line + NewLine);
 
-								if (OptVerbose) {
-									Console.CursorLeft = message.Length;
-									curPos += line.Length + NewLine.Length;
-									Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
+									if (OptVerbose) {
+										Console.CursorLeft = message.Length;
+										curPos += line.Length + NewLine.Length;
+										Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
+									}
 								}
+
+								writer.Flush();
+								writer.Close();
 							}
-
-							// ensure every file ends with an empty line..
-							//if (line.Trim().Length > 0) {
-							//	w.Write(NewLine);
-							//}
-
-							w.Flush();
-							w.Close();
 						}
 
 						r.Close();
@@ -324,7 +319,7 @@ namespace Bricksoft.DosToys
 
 				try {
 					if (OptBackup) {
-						// TODO: backup files should not be deleted..
+						// TODO: old(er) backup files should not be deleted..
 						if (File.Exists(filename + ".bak")) {
 							File.SetAttributes(filename + ".bak", FileAttributes.Normal);
 							File.Delete(filename + ".bak");
