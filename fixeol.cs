@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2003-2016 Kody Brown (kody@bricksoft.com).
+// Copyright (C) 2003-2017 Kody Brown (kody@bricksoft.com).
 //
 // MIT License:
 //
@@ -26,7 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Text;
 using Bricksoft.PowerCode;
 
 namespace Bricksoft.DosToys
@@ -46,31 +46,52 @@ namespace Bricksoft.DosToys
 			return f.Run();
 		}
 
-		private CommandLine args;
-		private string prodName = "fixeol";
-		private string envName = "fixeol";
-		private string envPrefix = "fixeol_";
+		private readonly CommandLine args;
+		private readonly string prodName = "fixeol";
+		private readonly string envName = "fixeol";
+		private readonly string envPrefix = "fixeol_";
 
 		/// <summary>
 		/// Gets or sets whether to output details of every line found.
 		/// </summary>
-		public bool verbose { get; set; }
+		public bool OptVerbose { get; set; }
 
 		/// <summary>
 		/// Gets or sets whether to pause when finished.
 		/// </summary>
-		public bool pause { get; set; }
+		public bool OptPause { get; set; }
 
-		public bool recurse { get; set; }
+		/// <summary>
+		/// Gets or sets whether to scan sub-directories.
+		/// </summary>
+		public bool OptRecurse {
+			get { return recurseOption == SearchOption.AllDirectories; }
+			set {
+				if (value) {
+					recurseOption = SearchOption.AllDirectories;
+				} else {
+					recurseOption = SearchOption.TopDirectoryOnly;
+				}
+			}
+		}
 		protected SearchOption recurseOption = SearchOption.TopDirectoryOnly;
 
-		public bool backup { get; set; }
+		/// <summary>
+		/// Gets or sets whether to backup the (changed) files.
+		/// </summary>
+		public bool OptBackup { get; set; }
 
 		/// <summary>
 		/// Gets or sets whether to correct line endings and also specifies what ending to use.
-		/// Set to 'rn' for Windows format (\r\n). Set to 'n' for linux format (\n).
+		/// Set to 'crlf' for Windows format (\r\n). Set to 'lf' for linux format (\n).
 		/// </summary>
-		public string eol { get; set; }
+		public string OptEOL { get; set; }
+
+		/// <summary>
+		/// Gets or sets the encoding.
+		/// If not specified, the source file encoding is used.
+		/// </summary>
+		public string OptEncoding { get; set; } = null;
 
 		/// <summary>
 		/// Creates an instance of the class.
@@ -90,13 +111,13 @@ namespace Bricksoft.DosToys
 			// Pause when finished.
 			// Defaults to FALSE if not specified.
 			if (args.Contains("!p", "!pause")) {
-				pause = false;
+				OptPause = false;
 			} else if (args.Contains("p", "pause")) {
-				pause = args.GetBoolean(true, "p", "pause");
+				OptPause = args.GetBoolean(true, "p", "pause");
 			} else if (EnvironmentVariables.Exists(envPrefix + "pause")) {
-				pause = EnvironmentVariables.GetBoolean(true, envPrefix + "pause");
+				OptPause = EnvironmentVariables.GetBoolean(true, envPrefix + "pause");
 			} else {
-				pause = false;
+				OptPause = false;
 			}
 
 			if (args.Contains("h", "?", "help")) {
@@ -120,50 +141,50 @@ namespace Bricksoft.DosToys
 			// Verbose output.
 			// Defaults to FALSE if not specified.
 			if (args.Contains("!v", "!verbose")) {
-				verbose = false;
+				OptVerbose = false;
 			} else if (args.Contains("v", "verbose")) {
-				verbose = args.GetBoolean(true, "v", "verbose");
+				OptVerbose = args.GetBoolean(true, "v", "verbose");
 			} else if (EnvironmentVariables.Exists(envPrefix + "verbose")) {
-				verbose = EnvironmentVariables.GetBoolean(true, envPrefix + "verbose");
+				OptVerbose = EnvironmentVariables.GetBoolean(true, envPrefix + "verbose");
 			} else {
-				verbose = false;
+				OptVerbose = false;
 			}
 
 			// Backup the original file.
 			// Defaults to FALSE if not specified.
 			if (args.Contains("!b", "!backup")) {
-				backup = false;
+				OptBackup = false;
 			} else if (args.Contains("b", "backup")) {
-				backup = args.GetBoolean(true, "b", "backup");
+				OptBackup = args.GetBoolean(true, "b", "backup");
 			} else if (EnvironmentVariables.Exists(envPrefix + "backup")) {
-				backup = EnvironmentVariables.GetBoolean(true, envPrefix + "backup");
+				OptBackup = EnvironmentVariables.GetBoolean(true, envPrefix + "backup");
 			} else {
-				backup = false;
+				OptBackup = false;
 			}
 
 			// Recurse sub-directories.
 			// Defaults to FALSE if not specified.
 			if (args.Contains("!r", "!recurse", "!s", "!subdir", "!subdirs")) {
-				recurse = false;
+				OptRecurse = false;
 			} else if (args.Contains("r", "recurse", "s", "subdir", "subdirs")) {
-				recurse = args.GetBoolean(true, "r", "recurse", "s", "subdir", "subdirs");
+				OptRecurse = args.GetBoolean(true, "r", "recurse", "s", "subdir", "subdirs");
 			} else if (EnvironmentVariables.Exists(envPrefix + "recurse")) {
-				recurse = EnvironmentVariables.GetBoolean(true, envPrefix + "recurse");
+				OptRecurse = EnvironmentVariables.GetBoolean(true, envPrefix + "recurse");
 			} else {
-				recurse = false;
+				OptRecurse = false;
 			}
-			recurseOption = recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+			recurseOption = OptRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 
 			// Specify line ending to use.
 			// Default to format of the underlying operating system if not specified.
 			if (args.Contains("!eol")) {
-				eol = string.Empty;
+				OptEOL = string.Empty;
 			} else if (args.Contains("eol")) {
-				eol = args.GetString(Environment.NewLine, "eol");
+				OptEOL = args.GetString(Environment.NewLine, "eol");
 			} else if (EnvironmentVariables.Exists(envPrefix + "eol")) {
-				eol = EnvironmentVariables.GetString("rn", envPrefix + "eol");
+				OptEOL = EnvironmentVariables.GetString("rn", envPrefix + "eol");
 			} else {
-				eol = string.Empty;
+				OptEOL = string.Empty;
 			}
 
 			// I don't really care what is specified as the eol..
@@ -177,6 +198,18 @@ namespace Bricksoft.DosToys
 			//}
 			//eol = s.ToString();
 
+			// Specify file encoding ending to use.
+			// Default to format of the source file if not specified.
+			if (args.Contains("!encoding")) {
+				OptEncoding = string.Empty;
+			} else if (args.Contains("encoding")) {
+				OptEncoding = args.GetString(string.Empty, "encoding")?.ToLowerInvariant();
+			} else if (EnvironmentVariables.Exists(envPrefix + "encoding")) {
+				OptEncoding = EnvironmentVariables.GetString(string.Empty, envPrefix + "encoding")?.ToLowerInvariant();
+			} else {
+				OptEncoding = string.Empty;
+			}
+
 			#endregion
 
 			List<string> fileArgs;
@@ -189,16 +222,20 @@ namespace Bricksoft.DosToys
 			float totalSize;
 			string message;
 
-			if (eol.Length > 0) {
-				NewLine = eol.Replace("\\r", "\r")
-							 .Replace("\\n", "\n")
-							 .Replace("\\t", "\t")
-							 //.Replace("r", "\r")
-							 //.Replace("n", "\n")
-							 //.Replace("t", "\t")
-							 .Replace("\\\\", "\\");
+			if (OptEOL.Length > 0) {
+				NewLine = OptEOL.Replace("cr", "\r")
+								.Replace("lf", "\n")
+								.Replace("\\r", "\r")
+								.Replace("\\n", "\n");
+				foreach (char c in NewLine) {
+					if (c == '\r' || c == '\n') {
+						continue;
+					} else {
+						Console.Out.WriteLine($"**** Invalid eol character found in `{OptEOL}`");
+						return 5;
+					}
+				}
 			} else {
-				//NewLine = w.NewLine;
 				NewLine = Environment.NewLine;
 			}
 
@@ -228,11 +265,6 @@ namespace Bricksoft.DosToys
 					}
 				} else {
 					files.AddRange(Directory.GetFiles(".", f, recurseOption));
-					//if (recurse) {
-					//	files.AddRange(Directory.GetFiles(".", f, recurseOption));
-					//} else {
-					//	files.Add(f);
-					//}
 				}
 			}
 
@@ -250,7 +282,7 @@ namespace Bricksoft.DosToys
 				curPos = 0.01F;
 
 				Console.CursorVisible = false;
-				if (verbose) {
+				if (OptVerbose) {
 					Console.WriteLine("Processing file: {0}", filename);
 					Console.Write(message);
 				}
@@ -271,31 +303,50 @@ namespace Bricksoft.DosToys
 
 				try {
 					using (StreamReader r = File.OpenText(backupfile)) {
-						using (StreamWriter w = File.CreateText(filename)) {
-							while (!r.EndOfStream) {
-								line = r.ReadLine();
+						Encoding encoding;
 
-								//// replace the newline characters..
-								//while (line.IndexOf("\\\\n", StringComparison.InvariantCulture) > -1) {
-								//   line = line.Replace("\\\\n", "\\n");
-								//}
-
-								w.Write(line + NewLine);
-
-								if (verbose) {
-									Console.CursorLeft = message.Length;
-									curPos += line.Length + NewLine.Length;
-									Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
-								}
+						if (OptEncoding != null && OptEncoding.Length != 0) {
+							if (OptEncoding == "ascii") {
+								encoding = Encoding.ASCII;
+							} else if (OptEncoding == "utf32" || OptEncoding == "utf-32") {
+								encoding = Encoding.UTF32;
+							} else if (OptEncoding == "utf7" || OptEncoding == "utf-7") {
+								encoding = Encoding.UTF7;
+							} else if (OptEncoding == "utf8" || OptEncoding == "utf-8") {
+								encoding = Encoding.UTF8;
+							} else if (OptEncoding == "unicode") {
+								encoding = Encoding.Unicode;
+							} else {
+								Console.WriteLine($"Invalid or unknown encoding specified '{OptEncoding}'.");
+								return 89;
 							}
+							//Console.WriteLine($"Forced to '{encoding}' encoding.");
+						} else {
+							encoding = r.BaseStream.DetectEncoding();
+							//Console.WriteLine($"Using source file encoding '{encoding}'.");
+						}
 
-							// ensure every file ends with an empty line..
-							//if (line.Trim().Length > 0) {
-							//	w.Write(NewLine);
-							//}
+						var NextOutput = DateTime.Now.AddMilliseconds(200);
 
-							w.Flush();
-							w.Close();
+						using (FileStream outStream = File.Create(filename)) {
+							using (StreamWriter writer = new StreamWriter(outStream, encoding)) {
+								while (!r.EndOfStream) {
+									line = r.ReadLine();
+
+									writer.Write(line + NewLine);
+
+									if ((OptVerbose && DateTime.Now > NextOutput) || r.EndOfStream) {
+										Console.CursorLeft = message.Length;
+										curPos += line.Length + NewLine.Length;
+										Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
+
+										NextOutput = DateTime.Now.AddMilliseconds(5);
+									}
+								}
+
+								writer.Flush();
+								writer.Close();
+							}
 						}
 
 						r.Close();
@@ -309,8 +360,8 @@ namespace Bricksoft.DosToys
 				}
 
 				try {
-					if (backup) {
-						// TODO: backup files should not be deleted..
+					if (OptBackup) {
+						// TODO: old(er) backup files should not be deleted..
 						if (File.Exists(filename + ".bak")) {
 							File.SetAttributes(filename + ".bak", FileAttributes.Normal);
 							File.Delete(filename + ".bak");
@@ -328,13 +379,13 @@ namespace Bricksoft.DosToys
 					Console.CursorVisible = true;
 				}
 
-				if (verbose) {
+				if (OptVerbose) {
 					Console.CursorLeft = message.Length;
 					Console.WriteLine("100.00%  ");
 				}
 			}
 
-			if (verbose) {
+			if (OptVerbose) {
 				Console.Out.WriteLine();
 			}
 
@@ -345,7 +396,7 @@ namespace Bricksoft.DosToys
 
 		private void ShowPause()
 		{
-			if (pause) {
+			if (OptPause) {
 				Console.Out.Write("Press any key to continue: ");
 				Console.ReadKey(true);
 				Console.Out.WriteLine();
@@ -359,36 +410,38 @@ namespace Bricksoft.DosToys
 		{
 			if (!showDetails) {
 				Console.Out.WriteLine();
-				Console.Out.WriteLine("type '{0}.exe /?' for help", prodName);
+				Console.Out.WriteLine($"type '{prodName}.exe /?' for help");
 				return;
 			}
 
-			Console.Out.WriteLine("{0}.exe - fixes eol for the specified file(s).", prodName);
-			Console.Out.WriteLine("Copyright (C) 2003-2016 Kody Brown.");
+			Console.Out.WriteLine($"{prodName}.exe - fixes eol for the specified file(s).");
+			Console.Out.WriteLine("Copyright (C) 2003-2017 Kody Brown.");
 			Console.Out.WriteLine("No warranties expressed or implied. Use at your own risk.");
 			Console.Out.WriteLine();
 
 			Console.Out.WriteLine("Usage: ");
 			Console.Out.WriteLine();
-			Console.Out.WriteLine("  {0}.exe [options] [commands] [-file] \"filename\" ", envName);
+			Console.Out.WriteLine($"  {envName}.exe [options] [commands] \"filepattern\" [...] ");
 			Console.Out.WriteLine();
 
-			Console.Out.WriteLine("     file      the full filename of the file to manipulate.");
-			Console.Out.WriteLine("               file or {0}file (below) is required.", envPrefix);
-			//Console.Out.WriteLine("     -f|-find  the text to find in each file");
-			//Console.Out.WriteLine("               find or {0}find (below) is required", envPrefix);
+			Console.Out.WriteLine("     filepattern        the file(s) (or pattern) to manipulate.");
+			Console.Out.WriteLine("                        the filepattern is required.");
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("  commands: ");
 			Console.Out.WriteLine();
-			Console.Out.WriteLine("     /eol=[\\r\\n|\\n]        override the default eol settings of the operating system.");
+			Console.Out.WriteLine("     /eol [crlf|cr|lf]  override the default eol settings of the operating system.");
+			Console.Out.WriteLine("                        also supports [\\r\\n|\\r|\\n] for backwards compatibility.");
+			Console.Out.WriteLine();
+			Console.Out.WriteLine("     /encoding [enc]    override the default encoding settings of source file.");
+			Console.Out.WriteLine("                        supports `ascii`, `utf8`, `utf7`, `utc32`, and `unicode`.");
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("  options: ");
 			Console.Out.WriteLine();
-			Console.Out.WriteLine("     /v /verbose        output additional details (default:false)");
-			Console.Out.WriteLine("     /b /backup         backup (default:false)");
-			Console.Out.WriteLine("     /r /recurse        apply the file pattern(s) to the current");
+			Console.Out.WriteLine("     /v -verbose        output additional details (default:false)");
+			Console.Out.WriteLine("     /b -backup         backup (default:false)");
+			Console.Out.WriteLine("     /r -recurse        apply the file pattern(s) to the current");
 			Console.Out.WriteLine("                        and all sub-directories (default:false)");
-			Console.Out.WriteLine("     /p /pause          pause when finished (default:false)");
+			Console.Out.WriteLine("     /p -pause          pause when finished (default:false)");
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("     /set               displays the current environment variables");
 			Console.Out.WriteLine("                        then exits. All other options are ignored.");
@@ -409,17 +462,16 @@ namespace Bricksoft.DosToys
 
 		private void ShowSetVars()
 		{
-			int count;
-
-			count = 0;
 			Console.Out.WriteLine();
-			Console.Out.WriteLine("{0}.exe - {1}", envName, prodName);
+			Console.Out.WriteLine($"{envName}.exe - {prodName}");
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("environment variables: ");
 
+			int count = 0;
+
 			foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables()) {
 				if (entry.Key.ToString().StartsWith(envPrefix)) {
-					Console.Out.WriteLine("  {0} = {1}", entry.Key, entry.Value);
+					Console.Out.WriteLine($"  {entry.Key} = {entry.Value}");
 					count++;
 				}
 			}
