@@ -46,10 +46,10 @@ namespace Bricksoft.DosToys
 			return f.Run();
 		}
 
-		private CommandLine args;
-		private string prodName = "fixeol";
-		private string envName = "fixeol";
-		private string envPrefix = "fixeol_";
+		private readonly CommandLine args;
+		private readonly string prodName = "fixeol";
+		private readonly string envName = "fixeol";
+		private readonly string envPrefix = "fixeol_";
 
 		/// <summary>
 		/// Gets or sets whether to output details of every line found.
@@ -86,6 +86,12 @@ namespace Bricksoft.DosToys
 		/// Set to 'crlf' for Windows format (\r\n). Set to 'lf' for linux format (\n).
 		/// </summary>
 		public string OptEOL { get; set; }
+
+		/// <summary>
+		/// Gets or sets the encoding.
+		/// If not specified, the source file encoding is used.
+		/// </summary>
+		public string OptEncoding { get; set; } = null;
 
 		/// <summary>
 		/// Creates an instance of the class.
@@ -192,6 +198,18 @@ namespace Bricksoft.DosToys
 			//}
 			//eol = s.ToString();
 
+			// Specify file encoding ending to use.
+			// Default to format of the source file if not specified.
+			if (args.Contains("!encoding")) {
+				OptEncoding = string.Empty;
+			} else if (args.Contains("encoding")) {
+				OptEncoding = args.GetString(string.Empty, "encoding")?.ToLowerInvariant();
+			} else if (EnvironmentVariables.Exists(envPrefix + "encoding")) {
+				OptEncoding = EnvironmentVariables.GetString(string.Empty, envPrefix + "encoding")?.ToLowerInvariant();
+			} else {
+				OptEncoding = string.Empty;
+			}
+
 			#endregion
 
 			List<string> fileArgs;
@@ -285,8 +303,30 @@ namespace Bricksoft.DosToys
 
 				try {
 					using (StreamReader r = File.OpenText(backupfile)) {
-						Encoding encoding = r.BaseStream.DetectEncoding();
-						//Console.WriteLine($"encoding={encoding}");
+						Encoding encoding;
+
+						if (OptEncoding != null && OptEncoding.Length != 0) {
+							if (OptEncoding == "ascii") {
+								encoding = Encoding.ASCII;
+							} else if (OptEncoding == "utf32" || OptEncoding == "utf-32") {
+								encoding = Encoding.UTF32;
+							} else if (OptEncoding == "utf7" || OptEncoding == "utf-7") {
+								encoding = Encoding.UTF7;
+							} else if (OptEncoding == "utf8" || OptEncoding == "utf-8") {
+								encoding = Encoding.UTF8;
+							} else if (OptEncoding == "unicode") {
+								encoding = Encoding.Unicode;
+							} else {
+								Console.WriteLine($"Invalid or unknown encoding specified '{OptEncoding}'.");
+								return 89;
+							}
+							//Console.WriteLine($"Forced to '{encoding}' encoding.");
+						} else {
+							encoding = r.BaseStream.DetectEncoding();
+							//Console.WriteLine($"Using source file encoding '{encoding}'.");
+						}
+
+						var NextOutput = DateTime.Now.AddMilliseconds(200);
 
 						using (FileStream outStream = File.Create(filename)) {
 							using (StreamWriter writer = new StreamWriter(outStream, encoding)) {
@@ -295,10 +335,12 @@ namespace Bricksoft.DosToys
 
 									writer.Write(line + NewLine);
 
-									if (OptVerbose) {
+									if ((OptVerbose && DateTime.Now > NextOutput) || r.EndOfStream) {
 										Console.CursorLeft = message.Length;
 										curPos += line.Length + NewLine.Length;
 										Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
+
+										NextOutput = DateTime.Now.AddMilliseconds(5);
 									}
 								}
 
@@ -389,6 +431,9 @@ namespace Bricksoft.DosToys
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("     /eol [crlf|cr|lf]  override the default eol settings of the operating system.");
 			Console.Out.WriteLine("                        also supports [\\r\\n|\\r|\\n] for backwards compatibility.");
+			Console.Out.WriteLine();
+			Console.Out.WriteLine("     /encoding [enc]    override the default encoding settings of source file.");
+			Console.Out.WriteLine("                        supports `ascii`, `utf8`, `utf7`, `utc32`, and `unicode`.");
 			Console.Out.WriteLine();
 			Console.Out.WriteLine("  options: ");
 			Console.Out.WriteLine();

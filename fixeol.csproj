@@ -107,9 +107,9 @@
     <CommitVersion>N/A</CommitVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <GitBinPath>C:\Program Files\Git\cmd</GitBinPath>
+    <GitBinPath>C:\Users\kodyb\scoop\shims</GitBinPath>
   </PropertyGroup>
-  <UsingTask TaskName="GitVersion" AssemblyFile="C:\Bin\GitVersion.dll" />
+  <UsingTask TaskName="GitVersion" AssemblyFile="C:\Users\kodyb\Bin\GitVersion.MSBuild.dll" />
   <Target Name="BeforeBuild">
     <GitVersion GitBinPath="$(GitBinPath)" CurrentPath="$(MSBuildProjectDirectory)">
       <Output TaskParameter="CommitVersion" PropertyName="CommitVersion" />
