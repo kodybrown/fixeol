@@ -14,13 +14,14 @@ jobs:
         dotnet: [ '2.2.x', '3.0', '3.1.x' ]
     name: Dotnet ${{ matrix.dotnet }}
     steps:
-      - name: Get source
-        uses: actions/checkout@master
-        
+      - uses: actions/checkout@master
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
+      - run: dotnet build --configuration Release
+
+#       - name: Restore
 #       - run: dotnet restore
           
 #       - name: Restore
@@ -28,10 +29,9 @@ jobs:
         
 #       - name: Build
 #       - run: dotnet build --no-restore --configuration Release
-      - run: dotnet build --configuration Release
 
-      - name: Test
-        run: dotnet test --no-restore --verbosity normal
+#       - name: Test
+#         run: dotnet test --no-restore --verbosity normal
 
-      - name: Publish
-        run: dotnet publish --no-restore --configuration Release
+#       - name: Publish
+#         run: dotnet publish --no-restore --configuration Release
