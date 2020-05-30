@@ -1,4 +1,4 @@
-name: fixeol release
+name: release
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: fixeol build
+name: build
 
 on:
   push:
