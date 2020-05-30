@@ -96,21 +96,21 @@ jobs:
           asset_name: fixeol-win-arm-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
 
-      - name: "Publish: win-x64-self-contained"
-        run: |
-          dotnet restore
-          dotnet publish --nologo --configuration Release --runtime win-x64 --framework netcoreapp3.1 --output ./win-x64-self-contained/ --self-contained true
-          zip --junk-paths ./fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip ./win-x64-self-contained/*
+      # - name: "Publish: win-x64-self-contained"
+      #   run: |
+      #     dotnet restore
+      #     dotnet publish --nologo --configuration Release --runtime win-x64 --framework netcoreapp3.1 --output ./win-x64-self-contained/ --self-contained true
+      #     zip --junk-paths ./fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip ./win-x64-self-contained/*
 
-      - name: "Upload: win-x64-self-contained"
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip
-          asset_name: fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip
-          asset_content_type: application/zip
+      # - name: "Upload: win-x64-self-contained"
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip
+      #     asset_name: fixeol-win-x64-self-contained-${{ env.TAG_NAME }}.zip
+      #     asset_content_type: application/zip
 
       - name: "Publish: linux-x64"
         run: |
