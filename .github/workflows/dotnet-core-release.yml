@@ -14,6 +14,9 @@ jobs:
         dotnet: [ '3.1.202' ]
     name: dotnet core ${{ matrix.dotnet }}
     steps:
+      - name: Get tag
+        run: echo ::set-env name=TAG_NAME::${GITHUB_REF#refs/*/}
+
       - name: Get source
         uses: actions/checkout@master
 
@@ -36,7 +39,7 @@ jobs:
 
       - name: Create zip file
         run: |
-          zip --junk-paths ./fixeol-${{ github.ref }}.zip ./bin/Release/netcoreapp${{ matrix.dotnet }}/publish/*
+          zip --junk-paths ./fixeol-${{ env.TAG_NAME }}.zip ./bin/Release/netcoreapp${{ matrix.dotnet }}/publish/*
 
       - name: Create Release
         id: create_release
@@ -45,7 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          release_name: Release ${{ env.TAG_NAME }}
           draft: false
           prerelease: false
 
@@ -56,6 +59,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./fixeol-${{ github.ref }}.zip
-          asset_name: fixeol-${{ github.ref }}.zip
+          asset_path: ./fixeol-${{ env.TAG_NAME }}.zip
+          asset_name: fixeol-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
