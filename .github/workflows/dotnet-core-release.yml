@@ -38,15 +38,11 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
 
       - name: Publish
-        id: publish_build
-        run: dotnet publish --no-restore --configuration Release
-
-      - name: Echo Publish
-        run: echo ${{ steps.publish_build.outputs }}
+        run: dotnet publish --no-restore --configuration Release --output ./publish/
 
       - name: Create zip file
         run: |
-          zip --junk-paths ./fixeol-${{ env.TAG_NAME }}.zip ./bin/Release/netcoreapp${{ matrix.dotnet }}/publish/*
+          zip --junk-paths ./fixeol-${{ env.TAG_NAME }}.zip ./publish/*
 
       - name: Create Release
         id: create_release
