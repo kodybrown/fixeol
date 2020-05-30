@@ -36,13 +36,6 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
 
-      - name: Publish
-        run: dotnet publish --nologo --no-restore --no-build --configuration Release --framework netcoreapp3.1 --output ./publish/ --self-contained false
-
-      - name: Create zip file
-        run: |
-          zip --junk-paths ./fixeol-${{ env.TAG_NAME }}.zip ./publish/*
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -54,13 +47,34 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release
+      - name: Publish win-x64
+        run: |
+          dotnet publish --nologo --no-restore --no-build --configuration Release --runtime win-x64 --framework netcoreapp3.1 --output ./publish/win-x64/ --self-contained false
+          zip --junk-paths ./fixeol-win_x64-${{ env.TAG_NAME }}.zip ./publish/win-x64/*
+
+      - name: Upload Release win-x64
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./fixeol-${{ env.TAG_NAME }}.zip
-          asset_name: fixeol-${{ env.TAG_NAME }}.zip
+          asset_path: ./fixeol-win_x64-${{ env.TAG_NAME }}.zip
+          asset_name: fixeol-win_x64-${{ env.TAG_NAME }}.zip
+          asset_content_type: application/zip
+
+      - name: Publish linux-x64
+        run: |
+          dotnet publish --nologo --no-restore --no-build --configuration Release --runtime linux-x64 --framework netcoreapp3.1 --output ./publish/linux-x64/ --self-contained false
+          zip --junk-paths ./fixeol-linux_x64-${{ env.TAG_NAME }}.zip ./publish/linux-x64/*
+
+      - name: Upload Release linux-x64
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./fixeol-linux_x64-${{ env.TAG_NAME }}.zip
+          asset_name: fixeol-linux_x64-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
