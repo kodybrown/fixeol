@@ -35,7 +35,11 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
 
       - name: Publish
+        id: publish_build
         run: dotnet publish --no-restore --configuration Release
+
+      - name: Echo Publish
+        run: echo ${{ steps.publish_build.outputs }}
 
       - name: Create zip file
         run: |
