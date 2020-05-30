@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2003-2017 Kody Brown (kody@bricksoft.com).
+// Copyright (C) 2003-2020 Kody Brown (kody@bricksoft.com).
 //
 // MIT License:
 //
