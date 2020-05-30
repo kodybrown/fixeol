@@ -29,7 +29,7 @@ using System.IO;
 using System.Text;
 using Bricksoft.PowerCode;
 
-namespace Bricksoft.DosToys
+namespace Bricksoft.fixeol
 {
 	public class fixeol
 	{
