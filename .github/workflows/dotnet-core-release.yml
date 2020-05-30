@@ -27,14 +27,14 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Restore
-        run: dotnet restore
+      # - name: Restore
+      #   run: dotnet restore
 
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
+      # - name: Build
+      #   run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: dotnet test --verbosity normal
 
       - name: Create Release
         id: create_release
@@ -47,10 +47,14 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Zip help
+        run: zip --help
+
       - name: Publish win-x64
         run: |
-          dotnet publish --nologo --no-restore --no-build --configuration Release --runtime win-x64 --framework netcoreapp3.1 --output ./publish/win-x64/ --self-contained false
-          zip --junk-paths ./fixeol-win_x64-${{ env.TAG_NAME }}.zip ./publish/win-x64/*
+          dotnet restore --runtime win-x64
+          dotnet publish --nologo --configuration Release --runtime win-x64 --framework netcoreapp3.1 --output ./win-x64/ --self-contained true
+          zip --junk-paths ./fixeol-win_x64-${{ env.TAG_NAME }}.zip ./win-x64/*
 
       - name: Upload Release win-x64
         uses: actions/upload-release-asset@v1
@@ -62,10 +66,27 @@ jobs:
           asset_name: fixeol-win_x64-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
 
+      - name: Publish win-x86
+        run: |
+          dotnet restore --runtime win-x86
+          dotnet publish --nologo --configuration Release --runtime win-x86 --framework netcoreapp3.1 --output ./win-x86/ --self-contained true
+          zip -o -7 --junk-paths ./fixeol-win_x86-${{ env.TAG_NAME }}.zip ./win-x86/*
+
+      - name: Upload Release win-x86
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./fixeol-win_x86-${{ env.TAG_NAME }}.zip
+          asset_name: fixeol-win_x86-${{ env.TAG_NAME }}.zip
+          asset_content_type: application/zip
+
       - name: Publish linux-x64
         run: |
-          dotnet publish --nologo --no-restore --no-build --configuration Release --runtime linux-x64 --framework netcoreapp3.1 --output ./publish/linux-x64/ --self-contained false
-          zip --junk-paths ./fixeol-linux_x64-${{ env.TAG_NAME }}.zip ./publish/linux-x64/*
+          dotnet restore --runtime linux-x64
+          dotnet publish --nologo --configuration Release --runtime linux-x64 --framework netcoreapp3.1 --output ./publish/linux-x64/ --self-contained false
+          zip -o -7 --junk-paths ./fixeol-linux_x64-${{ env.TAG_NAME }}.zip ./publish/linux-x64/*
 
       - name: Upload Release linux-x64
         uses: actions/upload-release-asset@v1
