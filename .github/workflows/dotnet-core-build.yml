@@ -16,7 +16,7 @@ jobs:
     name: dotnet core ${{ matrix.dotnet }}
     steps:
       - name: Get source
-        uses: actions/checkout@v2 #actions/checkout@master
+        uses: actions/checkout@v2
           ref: ${{ github.ref##*/ }}
 
       - name: Setup .NET Core SDK
