@@ -4,11 +4,11 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Bricksoft.fixeol</RootNamespace>
     <AssemblyName>fixeol</AssemblyName>
-    <AssemblyTitle>fixeol ver:1.6.2005.3010</AssemblyTitle>
-    <Version>1.6.2005.3010</Version>
+    <AssemblyTitle>fixeol ver:1.6.2005.3012</AssemblyTitle>
+    <Version>1.6.2005.3012</Version>
     <Description>fixes the eol (end of line) characters for the specified file(s).</Description>
     <Company>Bricksoft.com</Company>
     <Product>fixeol</Product>
-    <Copyright>Copyright (C) 2008-2020 Kody Brown</Copyright>
+    <Copyright>Copyright (C) 2003-2020 Kody Brown</Copyright>
   </PropertyGroup>
 </Project>

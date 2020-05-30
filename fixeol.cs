@@ -415,7 +415,7 @@ namespace Bricksoft.fixeol
 			}
 
 			Console.Out.WriteLine($"{prodName}.exe - fixes eol for the specified file(s).");
-			Console.Out.WriteLine("Copyright (C) 2003-2017 Kody Brown.");
+			Console.Out.WriteLine("Copyright (C) 2003-2020 Kody Brown.");
 			Console.Out.WriteLine("No warranties expressed or implied. Use at your own risk.");
 			Console.Out.WriteLine();
 

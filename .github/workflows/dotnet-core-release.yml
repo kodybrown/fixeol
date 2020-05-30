@@ -37,7 +37,7 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
 
       - name: Publish
-        run: dotnet publish --no-restore --configuration Release --output ./publish/
+        run: dotnet publish --nologo --no-restore --no-build --configuration Release --framework netcoreapp3.1 --output ./publish/ --self-contained false
 
       - name: Create zip file
         run: |
