@@ -50,7 +50,7 @@ jobs:
       - name: Publish self-contained
         run: |
           dotnet restore
-          dotnet publish --nologo --configuration Release --framework netcoreapp3.1 --output ./self-contained/ --self-contained true
+          dotnet publish --nologo --configuration Release --framework netcoreapp3.1 --output ./self-contained/ --self-contained false
           zip --junk-paths ./fixeol-self-contained-${{ env.TAG_NAME }}.zip ./self-contained/*
 
       - name: Upload Release self-contained
