@@ -20,7 +20,11 @@ will fix the line endings of all .css and .js files in the current and all sub-d
 
     commands:
 
-       /eol[=rn|n]        override the default eol settings of the operating system.
+       /eol [crlf|cr|lf]  override the default eol settings of the operating system.
+                          also supports [\r\n|\r|\n] for backwards compatibility.
+
+       /encoding [enc]    override the default encoding settings of source file.
+                          supports `ascii`, `utf8`, `utf7`, `utc32`, and `unicode`.
 
     options:
 
