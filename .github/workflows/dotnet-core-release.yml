@@ -53,7 +53,6 @@ jobs:
           zip --junk-paths ./fixeol-win_x64-${{ env.TAG_NAME }}.zip ./publish/win-x64/*
 
       - name: Upload Release win-x64
-        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,7 +68,6 @@ jobs:
           zip --junk-paths ./fixeol-linux_x64-${{ env.TAG_NAME }}.zip ./publish/linux-x64/*
 
       - name: Upload Release linux-x64
-        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
