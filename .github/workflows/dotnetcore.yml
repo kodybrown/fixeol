@@ -23,19 +23,16 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet build -c Release
+      - name: Restore
+        run: dotnet restore
 
-#       - name: Restore
-#       - run: dotnet restore
+      # - name: Build
+      #   run: dotnet build -c Release
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
 
-#       - name: Restore
-#         run: dotnet restore
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
 
-#       - name: Build
-#       - run: dotnet build --no-restore --configuration Release
-
-#       - name: Test
-#         run: dotnet test --no-restore --verbosity normal
-
-#       - name: Publish
-#         run: dotnet publish --no-restore --configuration Release
+      - name: Publish
+        run: dotnet publish --no-restore --configuration Release
