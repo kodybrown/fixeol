@@ -3,9 +3,11 @@
 ![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build/badge.svg)
 ![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg)
 
+Fixes the line-endings of the specified file(s). The line-ending used can be specified via the command-line.
+
 Click here for the [latest release](https://github.com/kodybrown/fixeol/releases/latest/).
 
-Fixes the line-endings of the specified file(s). The line-ending used can be specified via the command-line.
+----
 
 You can fix a file at a time or use wildcards; even multiple file patterns. For instance:
 
