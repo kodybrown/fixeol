@@ -1,9 +1,7 @@
 # fixeol
 
+![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build/badge.svg)
 ![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg)
-
-![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build-develop/badge.svg?branch=develop)
-![dotnet-core-build-master](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build-master/badge.svg?branch=master)
 
 Fixes the line-endings of the specified file(s). The line-ending used can be specified via the command-line.
 

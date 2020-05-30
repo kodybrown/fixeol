@@ -1,10 +1,10 @@
-name: dotnet-core-build-develop
+name: dotnet-core-build
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ develop ]
+    branches: [ master, develop ]
 
 jobs:
   build:
@@ -16,7 +16,8 @@ jobs:
     name: dotnet core ${{ matrix.dotnet }}
     steps:
       - name: Get source
-        uses: actions/checkout@develop
+        uses: actions/checkout@v2 #actions/checkout@master
+          ref: ${{ github.ref##*/ }}
 
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v1.4.0
