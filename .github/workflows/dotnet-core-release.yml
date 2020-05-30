@@ -1,4 +1,4 @@
-name: release
+name: dotnet-core-release
 
 on:
   push:
