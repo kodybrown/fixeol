@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: [ '2.2.x', '3.0', '3.1.x' ]
-    name: Dotnet ${{ matrix.dotnet }}
+        # dotnet: [ '2.2.x', '3.0', '3.1.x' ]
+        dotnet: [ '3.1.202' ]
+    name: dotnet core ${{ matrix.dotnet }}
     steps:
-      - name: Get the source
+      - name: Get source
         uses: actions/checkout@master
 
       - name: Setup .NET Core SDK
