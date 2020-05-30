@@ -15,8 +15,8 @@ jobs:
     name: Dotnet ${{ matrix.dotnet }}
     steps:
       - uses: actions/checkout@master
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v1.4.0
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - run: dotnet build --configuration Release
