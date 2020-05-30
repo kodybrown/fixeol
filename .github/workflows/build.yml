@@ -2,17 +2,16 @@ name: fixeol build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        #dotnet: [ '2.2.x', '3.0', '3.1.x' ]
-        dotnet: [ '3.1.100' ]
+        dotnet: [ '2.2.x', '3.0', '3.1.x' ]
     name: Dotnet ${{ matrix.dotnet }}
     steps:
       - name: Get the source
@@ -26,8 +25,6 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      # - name: Build
-      #   run: dotnet build -c Release
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
