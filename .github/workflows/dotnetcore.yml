@@ -8,18 +8,23 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    #runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: [ '2.2.x', '3.0', '3.1.x' ]
+        #dotnet: [ '2.2.x', '3.0', '3.1.x' ]
+        dotnet: [ '3.1.100' ]
     name: Dotnet ${{ matrix.dotnet }}
     steps:
+      - name: Get the source
       - uses: actions/checkout@master
+        
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v1.4.0
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - run: dotnet build --configuration Release
+
+      - run: dotnet build -c Release
 
 #       - name: Restore
 #       - run: dotnet restore
