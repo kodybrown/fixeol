@@ -143,18 +143,18 @@ jobs:
           asset_name: fixeol-linux-arm-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
 
-      - name: Publish macos-x64
+      - name: Publish osx-x64
         run: |
-          dotnet restore --runtime macos-x64
-          dotnet publish --nologo --configuration Release --runtime macos-x64 --framework netcoreapp3.1 --output ./publish/macos-x64/ --self-contained false
-          zip -o -7 --junk-paths ./fixeol-macos-x64-${{ env.TAG_NAME }}.zip ./publish/macos-x64/*
+          dotnet restore --runtime osx-x64
+          dotnet publish --nologo --configuration Release --runtime osx-x64 --framework netcoreapp3.1 --output ./publish/osx-x64/ --self-contained false
+          zip -o -7 --junk-paths ./fixeol-osx-x64-${{ env.TAG_NAME }}.zip ./publish/osx-x64/*
 
-      - name: Upload Release macos-x64
+      - name: Upload Release osx-x64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./fixeol-macos-x64-${{ env.TAG_NAME }}.zip
-          asset_name: fixeol-macos-x64-${{ env.TAG_NAME }}.zip
+          asset_path: ./fixeol-osx-x64-${{ env.TAG_NAME }}.zip
+          asset_name: fixeol-osx-x64-${{ env.TAG_NAME }}.zip
           asset_content_type: application/zip
