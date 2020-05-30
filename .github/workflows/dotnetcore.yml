@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-16.04
     strategy:
       matrix:
-        dotnet: [ '2.2.103', '3.0', '3.1.x' ]
+        dotnet: [ '2.2.x', '3.0', '3.1.x' ]
     name: Dotnet ${{ matrix.dotnet }}
     steps:
       - name: Get source
@@ -21,13 +21,14 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - run: dotnet restore
+#       - run: dotnet restore
           
 #       - name: Restore
 #         run: dotnet restore
         
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
+#       - name: Build
+#       - run: dotnet build --no-restore --configuration Release
+      - run: dotnet build --configuration Release
 
       - name: Test
         run: dotnet test --no-restore --verbosity normal
