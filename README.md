@@ -1,6 +1,6 @@
 # fixeol
 
-![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg?branch=master)
+![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg)
 
 ![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build-develop/badge.svg?branch=develop)
 ![dotnet-core-build-master](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build-master/badge.svg?branch=master)
