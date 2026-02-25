@@ -264,6 +264,40 @@ public class ConsoleApp
       .Where(p => Attribute.IsDefined(p, typeof(NamedCommandsAttribute)))
       .ToList();
 
+    //
+    // Apply default values from NamedParametersAttribute to properties that have them.
+    // This gives defaults the lowest priority - they can be overridden by environment variables
+    // or command-line arguments.
+    //
+    foreach (var paramProp in namedParameters) {
+      var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(NamedParametersAttribute));
+      if (attr?.DefaultValue != null) {
+        // Check if the default value type matches the property type
+        if (paramProp.PropertyType == typeof(bool) && attr.DefaultValue is bool boolDefault) {
+          paramProp.SetValue(this, boolDefault);
+        } else if (paramProp.PropertyType == typeof(int) && attr.DefaultValue is int intDefault) {
+          paramProp.SetValue(this, intDefault);
+        } else if (paramProp.PropertyType == typeof(string) && attr.DefaultValue is string stringDefault) {
+          paramProp.SetValue(this, stringDefault);
+        } else if (paramProp.PropertyType == typeof(string[])) {
+          if (attr.DefaultValue is string[] arrayDefault) {
+            paramProp.SetValue(this, arrayDefault);
+          } else if (attr.DefaultValue is string stringValue) {
+            // Support single string that gets converted to array
+            paramProp.SetValue(this, new[] { stringValue });
+          }
+        } else {
+          // Try to set the value directly if types match
+          var defaultType = attr.DefaultValue.GetType();
+          if (paramProp.PropertyType.IsAssignableFrom(defaultType)) {
+            paramProp.SetValue(this, attr.DefaultValue);
+          } else {
+            Console.WriteLine($"Warning: Default value type mismatch for property {paramProp.Name}. Expected {paramProp.PropertyType.Name}, got {defaultType.Name}");
+          }
+        }
+      }
+    }
+
     void SetValue( PropertyInfo? paramProp, string arg, bool is_flag, bool flag_val, ref int i )
     {
       exit_code = 0;
