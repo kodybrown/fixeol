@@ -1,23 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <PackageId>fixeol</PackageId>
+    <AssemblyName>FixEol</AssemblyName>
+    <AssemblyTitle>FixEol</AssemblyTitle>
     <Product>Bricksoft.PowerTools</Product>
-    <AssemblyName>fixeol</AssemblyName>
-    <AssemblyTitle>fixeol</AssemblyTitle>
     <RootNamespace>Bricksoft.fixeol</RootNamespace>
-    <Description>Fixes the eol (end of line) characters for the specified file(s).</Description>
+    <Description>Fixes the EOL (end of line) characters in files.</Description>
     <Company></Company>
-    <Authors>thewizard@wasatchwizard.com</Authors>
     <Copyright>Copyright (c) 2003-2026 Kody Brown</Copyright>
+    <Authors>thewizard@wasatchwizard.com</Authors>
     <RepositoryUrl>https://github.com/kodybrown/fixeol</RepositoryUrl>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <StartupObject></StartupObject>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <AssemblyMetadata Include="Authors" Value="$(Authors)" />
+  </ItemGroup>
+  
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>

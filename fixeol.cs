@@ -20,68 +20,90 @@ public class FixEol : ConsoleApp
     return app.Run();
   }
 
-  [NamedParameters(["pause"], allowEnvar: true)]
-  public override bool OptPause { get; protected set; } = false;
-
-  [NamedParameters(["verbose", "e"], allowEnvar: true)]
-  public override bool OptVerbose { get; protected set; } = false;
-
   /// <summary>
   /// Shows additional details during processing, such as the file being processed and progress
   /// percentage.
   /// </summary>
-  [NamedParameters(["progress"], allowEnvar: true)]
+  [NamedParameters(
+    names: ["progress"],
+    allowEnvar: true,
+    description: "Output per-file progress.",
+    defaultValue: false,
+    order: 302
+  )]
   public bool OptShowProgress { get; protected set; } = false;
 
   /// <summary>
   /// Gets or sets whether to scan sub-directories.
   /// </summary>
-  [NamedParameters(["recursive", "recurse", "r", "s", "subdir", "subdirs"], allowEnvar: true)]
+  [NamedParameters(
+    names: ["recursive", "r", "s"],
+    allowEnvar: true,
+    description: "Apply the file-pattern(s) to the current and all sub-directories.",
+    defaultValue: false,
+    order: 300
+  )]
   public bool OptRecurse { get; protected set; } = false;
 
   /// <summary>
   /// Gets or sets whether to backup the (changed) files.
   /// </summary>
-  [NamedParameters(["backup", "b"], allowEnvar: true)]
+  [NamedParameters(
+    names: ["backup", "b"],
+    allowEnvar: true,
+    description: "Create backup files of the changed files.",
+    defaultValue: false,
+    order: 301
+  )]
   public bool OptBackup { get; protected set; } = false;
 
   /// <summary>
   /// Gets or sets whether to correct line endings and also specifies what ending to use. Set to
   /// 'crlf' for Windows format (\r\n). Set to 'lf' for linux format (\n).
   /// </summary>
-  [NamedParameters(["eol"], allowEnvar: true)]
+  [NamedParameters(
+    name: "eol",
+    allowEnvar: true,
+    description: "Specify the EOL for the files.",
+    allowedValues: ["os", "crlf", "cr", "lf", "\\r\\n", "\\r", "\\n"],
+    defaultValue: "os",
+    order: 100
+  )]
   public string? OptEOL { get; protected set; } = null;
 
   /// <summary>
   /// Gets or sets the encoding. If not specified, the source file encoding is used.
   /// </summary>
-  [NamedParameters(["encoding", "enc"], allowEnvar: true)]
+  [NamedParameters(
+    name: "encoding",
+    allowEnvar: true,
+    description: "Specify the file encoding. The hyphen is optional (ie: 'utf-8' or 'utf8').",
+    allowedValues: ["os", "ascii", "ansi", "utf32", "utf32bom", "utf7", "utf8", "utf8bom", "unicode", "windows1252", "win1252"],
+    defaultValue: "os",
+    order: 200
+  )]
   public string? OptEncoding { get; protected set; } = null;
 
   /// <summary>
   /// Gets or sets the file pattern(s) to process.
   /// </summary>
-  [EverythingElse]
+  [UnhandledArguments(
+    name: "file-patterns",
+    description: "File patterns to process (files, directories, or wildcards).",
+    required: true
+  )]
   public List<string> FilePatterns { get; protected set; } = [];
-
-  /// <summary>
-  /// Show the app's environment variables.
-  /// </summary>
-  [NamedParameters("envars")]
-  public bool OptShowEnvVars { get; protected set; } = false;
 
   /// <summary>
   /// Creates an instance of the class.
   /// </summary>
   /// <param name="arguments"></param>
   public FixEol( string[] arguments )
-    : base(arguments, nameof(FixEol))
+    : base(arguments)
   {
     FilePatterns = [];
-    //AppEnvarPrefix = nameof(FixEol).ToLower() + "_";
-    AppEnvarPrefix = nameof(FixEol).ToLower() + "_";
-    AppDescription = "Fixes the eol for the specified file(s).";
-    AppCopyright = "Copyright (C) 2003-2026 Kody Brown.";
+    // Set the environment variable prefix (not available in assembly attributes)
+    AppEnvarPrefix = "fixeol_";
   }
 
   /// <summary>
@@ -96,23 +118,11 @@ public class FixEol : ConsoleApp
       return exitCode;
     }
 
-    if (OptHelp) {
-      ShowUsage(true);
-      PauseFlagHandler();
-      return 0;
-    }
-
-    if (OptShowEnvVars) {
-      ShowCurrentEnvars();
-      PauseFlagHandler();
-      return 0;
-    }
-
-    var defaultEol = Path.DirectorySeparatorChar == '\\' ? "crlf" : "lf";
-
     string NewLine;
 
-    if (!string.IsNullOrEmpty(OptEOL)) {
+    if (OptEOL?.Equals("os", StringComparison.OrdinalIgnoreCase) == true || OptEOL?.Equals("default", StringComparison.OrdinalIgnoreCase) == true) {
+      NewLine = Environment.NewLine;
+    } else if (!string.IsNullOrEmpty(OptEOL)) {
       NewLine = OptEOL.Replace("cr", "\r")
                       .Replace("lf", "\n")
                       .Replace("\\r", "\r")
@@ -129,20 +139,16 @@ public class FixEol : ConsoleApp
       NewLine = Environment.NewLine;
     }
 
+    // Get the encoding to write with.
+    // If not specified, uses the operating system default encoding (Encoding.Default).
+    var writeEncoding = GetEncoding(OptEncoding);
+
     var recurseOption = OptRecurse
       ? SearchOption.AllDirectories
       : SearchOption.TopDirectoryOnly;
 
     var files = new List<string>();
     var message = "Working: ";
-
-    // Parse file patterns from the FilePatterns property
-    if (FilePatterns == null || FilePatterns.Count == 0) {
-      Console.Out.WriteLine("**** Missing command-line argument: {0}", "file");
-      ShowUsage(false);
-      PauseFlagHandler();
-      return 1;
-    }
 
     // Remove empty or whitespace-only patterns
     FilePatterns = FilePatterns.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
@@ -176,7 +182,7 @@ public class FixEol : ConsoleApp
         // Verify directory exists
         if (!Directory.Exists(directory)) {
           Console.Out.WriteLine("**** The directory was not found: {0}", Path.GetFullPath(directory));
-          ShowUsage(false);
+          ShowHelpSuggestion();
           PauseFlagHandler();
           return 1;
         }
@@ -211,7 +217,7 @@ public class FixEol : ConsoleApp
         } else {
           // Doesn't exist as file or directory
           Console.Out.WriteLine("**** The file or directory was not found: {0}", Path.GetFullPath(pattern));
-          ShowUsage(false);
+          ShowHelpSuggestion();
           PauseFlagHandler();
           return 1;
         }
@@ -221,7 +227,7 @@ public class FixEol : ConsoleApp
     foreach (var filename in files) {
       if (!File.Exists(filename)) {
         Console.Out.WriteLine("**** The file was not found: {0}", filename);
-        ShowUsage(false);
+        ShowHelpSuggestion();
         PauseFlagHandler();
         return 1;
       }
@@ -258,10 +264,6 @@ public class FixEol : ConsoleApp
         using (var detectStream = File.OpenRead(backupfile)) {
           readEncoding = detectStream.DetectEncoding();
         }
-
-        // Get the encoding to write with.
-        // If not specified, uses the operating system default encoding (Encoding.Default).
-        var writeEncoding = GetEncoding(OptEncoding);
 
         using var r = new StreamReader(backupfile, readEncoding);
         var nextOutput = DateTime.Now.AddMilliseconds(200);
@@ -358,66 +360,11 @@ public class FixEol : ConsoleApp
       case "win1252":
         // Western European
         return Encoding.GetEncoding(1252);
+      case "os":
       case "default":
-      default:
-        Console.WriteLine($"Invalid or unknown encoding specified '{encoding}'. Using platform default.");
-        // Platform-specific (Windows: code page, Linux/macOS: UTF-8)
         return Encoding.Default;
+      default:
+        throw new Exception($"Invalid or unknown encoding specified '{encoding}'.");
     }
-  }
-
-  private void ShowUsage( bool showDetails = true )
-  {
-    ShowHeader();
-    Console.Out.WriteLine();
-
-    if (!showDetails) {
-      Console.Out.WriteLine($"type '{AppName}.exe /?' for help");
-      return;
-    }
-
-    Console.Out.WriteLine(@$"Usage: 
-
-> {AppName} [options] ""filepattern"" [""filepattern""] [...] 
-
-  filepattern        The file(s) (or pattern) to manipulate.
-                     The filepattern is required.
-
-Options: 
-
-  -eol [crlf|cr|lf]  Override the default eol settings of the operating system.
-                     supports `crlf` (Windows format), `lf` (Linux format), and `cr` (old Mac format).
-                     For example, use `-eol lf` to convert line endings to Linux format.
-                     Omit to use the default for the operating system.
-
-  -encoding [enc]    Override the default encoding settings of source file.
-                     Supports `ascii`, `ansi` (Windows-1252), `default` (platform-specific),
-                     `utf8`, `utf8bom`, `utf7`, `utf32`, `utf32bom`, `unicode`, and `windows-1252`.
-
-  -b -backup         Backup (default:false)
-  -r -recursive      Apply the file pattern(s) to the current
-                     and all sub-directories (default:false)
-  -p -pause          Pause when finished (default:false)
-  -e -verbose        Output additional details (default:false)
-  -progress          Output progress (default:false)
-
-  -v                 Show version
-  -version           Show full version details
-
-  -envars            Displays the current environment variables
-                     then exits. All other options are ignored.
-
-  *use ! to set any option to opposite value. overrides environment variables.
-  for example use /!e to not use verbose (useful to override envars).
-
-Environment Variables:
-
-    {AppEnvarPrefix}file=filename           sets -file ""filename""
-    {AppEnvarPrefix}verbose=true|false      sets /v or /!v
-    {AppEnvarPrefix}pause=true|false        sets /pause or /!pause
-
-    *command-line arguments override environment variables
-");
-    ShowCurrentEnvars(false);
   }
 }
