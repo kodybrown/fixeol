@@ -1,4 +1,4 @@
-# fixeol
+# FixEol
 
 ![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build/badge.svg)
 ![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg)

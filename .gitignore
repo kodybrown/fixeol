@@ -1,25 +1,29 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-### VisualStudioCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+**/CodeSnapshot.txt
+**/.ground_zero
+**/notes*.md
+**/todo*.md
 
-### VisualStudio
-*.suo
-*.user
-.vs/
-[Bb]in/
-[Oo]bj/
+**/publish
 
-### Windows
-Thumbs.db
-ehthumbs.db
-ehthumbs_vista.db
-Desktop.ini
 
-### macOS
-*.DS_Store
-.AppleDouble
-.LSOverride
+# System files
+**/.DS_Store
+**/[Tt]humbs.db
+**/[Dd]esktop.ini
+
+# Visual Studio
+**/.vs/
+**/[Bb]in/
+**/[Oo]bj/
+**/*.suo
+**/*.user
+
+# Test tools
+**/coverage/
+
+
+# Logs
+**/logs/
+**/*.log

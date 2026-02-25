@@ -1,41 +1,69 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>Bricksoft.fixeol</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>fixeol</PackageId>
+    <Product>Bricksoft.PowerTools</Product>
     <AssemblyName>fixeol</AssemblyName>
-    <AssemblyTitle>fixeol ver:1.6.2005.3015</AssemblyTitle>
-    <Version>1.6.2005.3015</Version>
+    <AssemblyTitle>fixeol</AssemblyTitle>
+    <RootNamespace>Bricksoft.fixeol</RootNamespace>
     <Description>Fixes the eol (end of line) characters for the specified file(s).</Description>
-    <Company>Bricksoft.com</Company>
-    <Product>fixeol</Product>
-    <Copyright>Copyright (c) 2003-2020 Kody Brown</Copyright>
-    <Authors>Kody Brown</Authors>
+    <Company></Company>
+    <Authors>thewizard@wasatchwizard.com</Authors>
+    <Copyright>Copyright (c) 2003-2026 Kody Brown</Copyright>
     <RepositoryUrl>https://github.com/kodybrown/fixeol</RepositoryUrl>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    <StartupObject></StartupObject>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <!-- Version Information -->
+  <PropertyGroup>
+    <!-- Package/product version (SemVer). -->
+    <Version>3.21.2602.2511</Version>
+    <!-- Assembly binding version: keep stable; bump only on breaking changes. -->
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <!-- Win32 file version (4-part). Usually matches Version numerically. -->
+    <FileVersion>3.21.2602.2511</FileVersion>
+    <!-- Human-readable version (can include pre-release/build metadata). -->
+    <InformationalVersion>3.21.2602.2511+$(SourceRevisionId)</InformationalVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+  <!-- Publish Settings -->
+  <PropertyGroup Condition="'$(Publish)' == 'true'">
+    <!-- Build configuration. `Debug` includes debug symbols, larger output.
+         `Release` optimizes for performance, smaller size. -->
+    <!-- <Configuration>Release</Configuration> -->
+
+    <!-- Runtime Identifier (RID). Specifies target platform (e.g., `win-x64`
+         for Windows, `linux-x64` for Linux, `osx-x64` for macOS x64,
+         `osx-arm64` for macOS ARM). -->
+    <!-- <RuntimeIdentifier>linux-x64</RuntimeIdentifier> -->
+
+    <!-- Combines all output into a single executable. Simplifies deployment
+         but increases file size slightly.
+         Recommended: Use for easier distribution unless size is critical. -->
+    <!-- <PublishSingleFile>True</PublishSingleFile> -->
+
+    <!-- Includes .NET runtime in output, making it standalone. Increases
+         size but ensures no runtime dependency on target machine.
+         Recommended: When used, .NET doesn't have to be installed on the target OS. -->
+    <!-- <SelfContained>True</SelfContained> -->
+
+    <!-- Removes unused code to reduce binary size. Effective for simple
+         apps but may break if dependencies aren't trim-compatible.
+         Recommended: Use cautiously, test thoroughly, especially with WebAPI and shared DLLs. -->
+    <!-- <PublishTrimmed>True</PublishTrimmed> -->
+
+    <!-- Directory for publish output. -->
+    <!-- <PublishDir>$(MSBuildThisFileDirectory)/publish</PublishDir> -->
+    <!-- <PublishDir>$(MSBuildProjectDirectory)/publish/$(RuntimeIdentifier)/$(Configuration)</PublishDir> -->
+    <!-- <PublishDir>$(MSBuildProjectDirectory)/../publish/Spark.WebAPI/$(RuntimeIdentifier)/$(Configuration)</PublishDir> -->
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
+
 </Project>

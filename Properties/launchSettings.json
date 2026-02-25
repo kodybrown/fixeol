@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "FixEol": {
+      "commandName": "Project",
+      "commandLineArgs": "-verbose -recursive -encoding utf8 -eol crlf *.cs *.csproj *.json",
+      "workingDirectory": "C:\\Users\\kodyb\\Bricksoft\\cloud"
+    }
+  }
+}
