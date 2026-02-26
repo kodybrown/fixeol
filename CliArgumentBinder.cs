@@ -6,117 +6,27 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
-public class ConsoleApp
+/// <summary>
+/// Provides command-line argument parsing and binding functionality for applications.
+/// This class uses reflection to bind command-line arguments to properties decorated with
+/// NamedParameters, NamedCommands, and UnhandledArguments attributes.
+/// </summary>
+public class CliArgumentBinder
 {
-  public string AppName { get; protected set; } = string.Empty;
-  public string? AppVersion { get; protected set; } = null;
-  public string? AppEnvarPrefix { get; protected set; } = null;
-  public string? AppDescription { get; protected set; } = null;
-  public string? AppCopyright { get; protected set; } = null;
-  public string? AppCompany { get; protected set; } = null;
-  public string? AppProduct { get; protected set; } = null;
-  public string? AppAuthors { get; protected set; } = null;
-  public string? AppRepositoryUrl { get; protected set; } = null;
+  public string AppName { get; set; } = string.Empty;
+  public string? AppVersion { get; set; } = null;
+  public string? AppEnvarPrefix { get; set; } = null;
+  public string? AppDescription { get; set; } = null;
+  public string? AppCopyright { get; set; } = null;
+  public string? AppCompany { get; set; } = null;
+  public string? AppProduct { get; set; } = null;
+  public string? AppAuthors { get; set; } = null;
+  public string? AppRepositoryUrl { get; set; } = null;
 
-  private readonly List<string> Arguments = [];
-
-  /// <summary>
-  /// When '-help' is specified on the command-line, the help information is output. If a topic is
-  /// provided (e.g. '--help topic'), then help for that specific topic is shown if available.
-  /// </summary>
-  [NamedParameters(
-    names: ["help", "?", "h"],
-    description: "Show this help message.",
-    valueIsOptional: true,
-    order: NamedParametersAttribute.DefaultGlobalOrder
-  )]
-  public bool OptHelp { get; protected set; } = false;
+  private readonly List<string> _arguments = [];
 
   /// <summary>
-  /// This property is what actually captures the '-help' and '-help topic' command-line arguments.
-  /// Setting this property will also set OptHelp to true, indicating that help should be shown. The
-  /// presence of a value in this property indicates that the user requested help, and the value
-  /// itself can be used to determine if they requested general help or help for a specific topic.
-  /// </summary>
-  public string? OptHelpTopic {
-    get => field;
-    protected set {
-      field = value;
-      // Always set OptHelp to true even if a topic is not provided, since the presence of the help flag indicates that help should be shown.
-      // Supports both `--help` and `--help topic` styles.
-      OptHelp = true;
-    }
-  }
-
-  /// <summary>
-  /// When specified on the command-line, only the app name and version is output.
-  /// </summary>
-  [NamedParameters(
-    name: "v",
-    description: "Show the version.",
-    order: NamedParametersAttribute.DefaultGlobalOrder + 10
-  )]
-  public bool OptVersion { get; protected set; } = false;
-
-  /// <summary>
-  /// When specified on the command-line, the app details, copyright, and version information is
-  /// output. This includes additional details such as build date, commit hash, and other relevant
-  /// metadata.
-  /// </summary>
-  [NamedParameters(
-    name: "version",
-    description: "Show app info and version.",
-    order: NamedParametersAttribute.DefaultGlobalOrder + 10
-  )]
-  public bool OptVersionFull { get; protected set; } = false;
-
-  /// <summary>
-  /// Pauses the console application before exiting, allowing the user to see any final output
-  /// before the window closes. This is especially useful when running the application by
-  /// double-clicking the executable in a file explorer, where the console window would otherwise
-  /// close immediately after execution completes.
-  /// </summary>
-  /// <remarks>
-  /// This property is virtual so the app can override it, setting the envar name.
-  /// </remarks>
-  [NamedParameters(
-    names: ["pause"],
-    allowEnvar: true,
-    description: "Pause when finished",
-    order: NamedParametersAttribute.DefaultGlobalOrder + 40,
-    defaultValue: false
-  )]
-  public bool OptPause { get; protected set; } = false;
-
-  /// <summary>
-  /// Enables verbose output for the console application, providing additional details about the
-  /// execution process. This is useful for debugging or understanding the internal workings of the
-  /// application.
-  /// </summary>
-  /// <remarks>
-  /// This property is virtual so the app can override it, setting the envar name.
-  /// </remarks>
-  [NamedParameters(
-    names: ["verbose", "e"],
-    description: "Output additional details",
-    allowEnvar: true,
-    order: NamedParametersAttribute.DefaultGlobalOrder + 50,
-    defaultValue: false
-  )]
-  public bool OptVerbose { get; protected set; } = false;
-
-  /// <summary>
-  /// Show the app's environment variables.
-  /// </summary>
-  [NamedParameters(
-    name: "envars",
-    description: "Displays the current environment variables.\nAll other options are ignored.",
-    order: NamedParametersAttribute.DefaultGlobalOrder + 100
-  )]
-  public bool OptShowEnvVars { get; protected set; } = false;
-
-  /// <summary>
-  /// Initializes a new instance of the ConsoleApp class with the specified application name and
+  /// Initializes a new instance of the CliArgumentBinder class with the specified application name and
   /// command-line arguments.
   /// </summary>
   /// <remarks>
@@ -133,9 +43,9 @@ public class ConsoleApp
   /// The name of the application to be used for display and identification purposes. If null or
   /// empty, the name is read from the assembly's Product or Title attribute.
   /// </param>
-  public ConsoleApp( string[] args, string? appName = null )
+  public CliArgumentBinder( string[] args, string? appName = null )
   {
-    Arguments = args?.ToList() ?? [];
+    _arguments = args?.ToList() ?? [];
 
     // Get the assembly to read metadata from
     var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
@@ -149,7 +59,7 @@ public class ConsoleApp
       AppName = titleAttr?.Title
              ?? productAttr?.Product
              ?? assembly.GetName().Name
-             ?? "ConsoleApp";
+             ?? "CliArgumentBinder";
     }
 
     // Get version - try InformationalVersion first (supports semver), then FileVersion, then AssemblyVersion
@@ -205,18 +115,7 @@ public class ConsoleApp
     }
   }
 
-  protected void PauseFlagHandler()
-  {
-    if (OptPause) {
-      Console.Write("Press any key to exit: ");
-      Console.ReadKey(true);
-      Console.CursorLeft = 0;
-      Console.Write("                       ");
-      Console.CursorLeft = 0;
-    }
-  }
-
-  protected static (string arg, bool isFlag, bool flagValue) ParseArgument( string arg )
+  private static (string arg, bool isFlag, bool flagValue) ParseArgument( string arg )
   {
     var isFlag = false;
     var slashIsFlag = OperatingSystem.IsWindows();
@@ -235,62 +134,56 @@ public class ConsoleApp
   }
 
   /// <summary>
-  /// Parses the command-line arguments provided to the application, binding them to properties
-  /// decorated with the `NamedParameters` and `NamedCommands` attributes. It also handles any
-  /// remaining arguments using a property decorated with the `EverythingElse` attribute if defined.
-  /// The method returns a tuple indicating whether the application should exit immediately (e.g.
-  /// after showing help or version information) and an exit code to be used when exiting. The
-  /// `allowEnvarValues` parameter controls whether environment variable values should be applied to
-  /// properties with the `NamedParameters` attribute before parsing command-line arguments,
-  /// allowing for a flexible configuration where users can set options via environment variables as
-  /// an alternative to command-line arguments, with command-line arguments taking precedence if
-  /// both are provided.
+  /// Parses command-line arguments and binds them to properties on the specified target object
+  /// decorated with NamedParameters, NamedCommands, and UnhandledArguments attributes.
   /// </summary>
-  protected (bool exit, int code) ParseCommandLineArguments( bool allowEnvarValues = false )
+  /// <param name="target">The object whose properties will be populated with parsed values.</param>
+  /// <param name="allowEnvarValues">Whether to apply environment variable values before parsing command-line arguments.</param>
+  /// <returns>A ParseResult indicating whether the application should exit and with what code.</returns>
+  public ParseResult ParseAndBind( object target, bool allowEnvarValues = false )
   {
-    var exit_code = 0;
+    ArgumentNullException.ThrowIfNull(target);
 
-    // Get all NamedParameter and NamedCommand properties (including private ones).
+    var exit_code = 0;
+    var targetType = target.GetType();
+
+    // Get all CliArgument properties (including private ones).
     var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-    var everythingElseProp = GetType().GetProperties(bindingFlags)
+    var everythingElseProp = targetType.GetProperties(bindingFlags)
       .FirstOrDefault(p => Attribute.IsDefined(p, typeof(UnhandledArgumentsAttribute)));
 
-    var namedParameters = GetType().GetProperties(bindingFlags)
-      .Where(p => Attribute.IsDefined(p, typeof(NamedParametersAttribute)))
-      .ToList();
-
-    var namedCommands = GetType().GetProperties(bindingFlags)
-      .Where(p => Attribute.IsDefined(p, typeof(NamedCommandsAttribute)))
+    var namedParameters = targetType.GetProperties(bindingFlags)
+      .Where(p => Attribute.IsDefined(p, typeof(CliArgumentAttribute)))
       .ToList();
 
     //
-    // Apply default values from NamedParametersAttribute to properties that have them.
+    // Apply default values from CliArgument attributes to properties that have them.
     // This gives defaults the lowest priority - they can be overridden by environment variables
     // or command-line arguments.
     //
     foreach (var paramProp in namedParameters) {
-      var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(NamedParametersAttribute));
+      var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
       if (attr?.DefaultValue != null) {
         // Check if the default value type matches the property type
         if (paramProp.PropertyType == typeof(bool) && attr.DefaultValue is bool boolDefault) {
-          paramProp.SetValue(this, boolDefault);
+          paramProp.SetValue(target, boolDefault);
         } else if (paramProp.PropertyType == typeof(int) && attr.DefaultValue is int intDefault) {
-          paramProp.SetValue(this, intDefault);
+          paramProp.SetValue(target, intDefault);
         } else if (paramProp.PropertyType == typeof(string) && attr.DefaultValue is string stringDefault) {
-          paramProp.SetValue(this, stringDefault);
+          paramProp.SetValue(target, stringDefault);
         } else if (paramProp.PropertyType == typeof(string[])) {
           if (attr.DefaultValue is string[] arrayDefault) {
-            paramProp.SetValue(this, arrayDefault);
+            paramProp.SetValue(target, arrayDefault);
           } else if (attr.DefaultValue is string stringValue) {
             // Support single string that gets converted to array
-            paramProp.SetValue(this, new[] { stringValue });
+            paramProp.SetValue(target, new[] { stringValue });
           }
         } else {
           // Try to set the value directly if types match
           var defaultType = attr.DefaultValue.GetType();
           if (paramProp.PropertyType.IsAssignableFrom(defaultType)) {
-            paramProp.SetValue(this, attr.DefaultValue);
+            paramProp.SetValue(target, attr.DefaultValue);
           } else {
             Console.WriteLine($"Warning: Default value type mismatch for property {paramProp.Name}. Expected {paramProp.PropertyType.Name}, got {defaultType.Name}");
           }
@@ -305,14 +198,14 @@ public class ConsoleApp
         // Found a matching named parameter property.
         if (paramProp.PropertyType == typeof(bool)) {
           // Boolean flag
-          paramProp.SetValue(this, flag_val);
+          paramProp.SetValue(target, flag_val);
         } else if (paramProp.PropertyType == typeof(string)) {
           // String parameter
-          var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(NamedParametersAttribute));
+          var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
           var isOptional = attr?.ValueIsOptional ?? false;
 
           // Accept next token even if it starts with '-' or '/' to allow absolute paths and values like '-foo'
-          i = GetSubArgument(Arguments, i, out var found, out var value, ignoreFlagSymbols: !isOptional);
+          i = GetSubArgument(_arguments, i, out var found, out var value, ignoreFlagSymbols: !isOptional);
 
           if (found) {
             // Validate against allowed values if specified
@@ -324,19 +217,19 @@ public class ConsoleApp
                 return;
               }
             }
-            paramProp.SetValue(this, value);
+            paramProp.SetValue(target, value);
           } else if (isOptional) {
             // Value is optional - set to empty string to indicate flag was present but no value provided
-            paramProp.SetValue(this, string.Empty);
+            paramProp.SetValue(target, string.Empty);
           } else {
             Console.WriteLine($"Missing string value for argument: {arg}");
             exit_code = -100;
           }
         } else if (paramProp.PropertyType == typeof(int)) {
           // Integer parameter
-          i = GetSubArgument(Arguments, i, out var found, out var value);
+          i = GetSubArgument(_arguments, i, out var found, out var value);
           if (found && int.TryParse(value, out var intValue)) {
-            paramProp.SetValue(this, intValue);
+            paramProp.SetValue(target, intValue);
           } else {
             Console.WriteLine($"Invalid or missing integer value for argument: {arg}");
             exit_code = -101;
@@ -344,15 +237,15 @@ public class ConsoleApp
         } else if (paramProp.PropertyType == typeof(string[])) {
           // string[] parameter
           // Accept next token even if it starts with '-' or '/' to allow absolute paths and values like '-foo'
-          i = GetSubArgument(Arguments, i, out var found, out var value, ignoreFlagSymbols: true);
+          i = GetSubArgument(_arguments, i, out var found, out var value, ignoreFlagSymbols: true);
           if (found) {
-            var ar = paramProp.GetValue(this) as string[];
+            var ar = paramProp.GetValue(target) as string[];
 
             // Is the property currently null?
             if (ar is null) {
               // Create a new array.
               ar = [];
-              paramProp.SetValue(this, ar);
+              paramProp.SetValue(target, ar);
             }
 
             // Remove surrounding quotes if present.
@@ -365,7 +258,7 @@ public class ConsoleApp
               // Remove the value from the array.
               var toRemove = value[1..];
               ar = ar.Where(x => !x.Equals(toRemove, StringComparison.InvariantCultureIgnoreCase)).ToArray();
-              paramProp.SetValue(this, ar);
+              paramProp.SetValue(target, ar);
               return;
             }
 
@@ -378,7 +271,7 @@ public class ConsoleApp
             // Add value to the array.
             Array.Resize(ref ar, ar.Length + 1);
             ar[^1] = value!;
-            paramProp.SetValue(this, ar);
+            paramProp.SetValue(target, ar);
           } else {
             Console.WriteLine($"Missing string value for argument: {arg}");
             exit_code = -100;
@@ -399,7 +292,7 @@ public class ConsoleApp
     //
     if (allowEnvarValues) {
       foreach (var paramProp in namedParameters) {
-        var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(NamedParametersAttribute));
+        var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
         if (attr != null && attr.AllowEnvar && attr.NamedParameters.Length > 0) {
           // Use first parameter name + prefix as the environment variable name
           var envarName = $"{AppEnvarPrefix}{attr.NamedParameters[0]}";
@@ -411,20 +304,20 @@ public class ConsoleApp
                 "true" or "t" or "yes" or "1" => true,
                 _ => false,
               };
-              paramProp.SetValue(this, boolVal);
+              paramProp.SetValue(target, boolVal);
             } else if (paramProp.PropertyType == typeof(int)) {
               if (int.TryParse(envVal, out var intVal)) {
-                paramProp.SetValue(this, intVal);
+                paramProp.SetValue(target, intVal);
               } else {
                 Console.WriteLine($"Invalid integer value for environment variable {envarName}: {envVal}");
               }
             } else if (paramProp.PropertyType == typeof(string)) {
-              paramProp.SetValue(this, envVal);
+              paramProp.SetValue(target, envVal);
             } else if (paramProp.PropertyType == typeof(string[])) {
               var ar = envVal.Split([';'], StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
                 .ToArray();
-              paramProp.SetValue(this, ar);
+              paramProp.SetValue(target, ar);
             } else {
               throw new Exception("Unsupported parameter type for environment variable property: " + paramProp.PropertyType.Name);
             }
@@ -434,37 +327,33 @@ public class ConsoleApp
     }
 
     //
-    // Parse the command-line arguments, binding them to properties with the NamedParameters and NamedCommands attributes,
-    // and handling any remaining arguments with the EverythingElse property if defined.
+    // Parse the command-line arguments, binding them to properties with CliArgument attributes.
+    // Supports both flag-style (--param) and command-style (param) arguments.
     //
-    for (var i = 0; i < Arguments.Count; i++) {
-      var (arg, is_flag, flag_val) = ParseArgument(Arguments[i]);
+    for (var i = 0; i < _arguments.Count; i++) {
+      var (arg, is_flag, flag_val) = ParseArgument(_arguments[i]);
       var arg_lower = arg.ToLowerInvariant();
 
+      PropertyInfo? matchedProp = null;
+
       if (is_flag) {
-        // Check if any of the NamedParameter properties match this argument.
-        var paramProp = namedParameters.FirstOrDefault(p =>
+        // Argument has a flag prefix (-, --, /) - check NamedParameters
+        matchedProp = namedParameters.FirstOrDefault(p =>
         {
-          var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(p, typeof(NamedParametersAttribute));
+          var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute));
           return attr != null && attr.NamedParameters.Any(n => n.Equals(arg, StringComparison.InvariantCultureIgnoreCase));
         });
-        if (paramProp != null) {
-          SetValue(paramProp, arg, is_flag, flag_val, ref i);
-          if (exit_code != 0) {
-            break;
-          }
-          continue;
-        }
+      } else {
+        // No flag prefix - check NamedCommands
+        matchedProp = namedParameters.FirstOrDefault(p =>
+        {
+          var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute));
+          return attr != null && attr.NamedCommands.Any(n => n.Equals(arg_lower, StringComparison.InvariantCultureIgnoreCase));
+        });
       }
 
-      // Check if any of the NamedCommand properties match this argument.
-      var commandProp = namedCommands.FirstOrDefault(p =>
-      {
-        var attr = (NamedCommandsAttribute?)Attribute.GetCustomAttribute(p, typeof(NamedCommandsAttribute));
-        return attr != null && attr.NamedCommands.Any(n => n.Equals(arg_lower, StringComparison.InvariantCultureIgnoreCase));
-      });
-      if (commandProp != null) {
-        SetValue(commandProp, arg, is_flag, flag_val, ref i);
+      if (matchedProp != null) {
+        SetValue(matchedProp, arg, is_flag, flag_val, ref i);
         if (exit_code != 0) {
           break;
         }
@@ -475,15 +364,15 @@ public class ConsoleApp
         // If we have an "everything else" property, handle it based on its type
         if (everythingElseProp.PropertyType == typeof(string)) {
           // string property - concatenate remaining arguments
-          var prevValue = everythingElseProp.GetValue(this) as string;
-          everythingElseProp.SetValue(this, $"{prevValue} {Arguments[i]}".Trim());
+          var prevValue = everythingElseProp.GetValue(target) as string;
+          everythingElseProp.SetValue(target, $"{prevValue} {_arguments[i]}".Trim());
         } else if (everythingElseProp.PropertyType == typeof(List<string>)) {
           // List<string> property - add each argument to the list
-          if (everythingElseProp.GetValue(this) is not List<string> list) {
+          if (everythingElseProp.GetValue(target) is not List<string> list) {
             list = new List<string>();
-            everythingElseProp.SetValue(this, list);
+            everythingElseProp.SetValue(target, list);
           }
-          list.Add(Arguments[i]);
+          list.Add(_arguments[i]);
         } else {
           Console.WriteLine($"Unsupported PositionalArguments property type: {everythingElseProp.PropertyType.Name} (must be string or List<string>)");
           exit_code = -103;
@@ -497,20 +386,43 @@ public class ConsoleApp
       }
     }
 
-    // Check the common flags.
-    if (OptHelp || exit_code != 0) {
-      ShowUsage(OptHelpTopic);
-      PauseFlagHandler();
-      return (true, exit_code);
+    // Check the common flags by looking for properties on the target with specific names
+    var optHelpProp = targetType.GetProperty("OptHelp", bindingFlags);
+    var optHelpTopicProp = targetType.GetProperty("OptHelpTopic", bindingFlags);
+    var optVersionProp = targetType.GetProperty("OptVersion", bindingFlags);
+    var optVersionFullProp = targetType.GetProperty("OptVersionFull", bindingFlags);
+    var optShowEnvarsProp = targetType.GetProperty("OptShowEnvVars", bindingFlags);
+    var optPauseProp = targetType.GetProperty("OptPause", bindingFlags);
+
+    var shouldShowHelp = (optHelpProp?.GetValue(target) as bool?) == true;
+    var helpTopic = optHelpTopicProp?.GetValue(target) as string;
+    var shouldShowVersion = (optVersionProp?.GetValue(target) as bool?) == true;
+    var shouldShowVersionFull = (optVersionFullProp?.GetValue(target) as bool?) == true;
+    var shouldShowEnvars = (optShowEnvarsProp?.GetValue(target) as bool?) == true;
+    var shouldPause = (optPauseProp?.GetValue(target) as bool?) == true;
+
+    // Check if help or error occurred
+    if (shouldShowHelp || exit_code != 0) {
+      ShowUsage(target, helpTopic);
+      if (shouldPause) {
+        PauseForUser();
+      }
+      return new ParseResult { ShouldExit = true, ExitCode = exit_code };
     }
-    if (OptVersionFull || OptVersion) {
-      ShowVersion();
-      return (true, 0);
+
+    // Check for version flags
+    if (shouldShowVersionFull || shouldShowVersion) {
+      ShowVersion(full: shouldShowVersionFull);
+      return new ParseResult { ShouldExit = true, ExitCode = 0 };
     }
-    if (OptShowEnvVars) {
-      ShowCurrentEnvars();
-      PauseFlagHandler();
-      return (true, 0);
+
+    // Check for envars flag
+    if (shouldShowEnvars) {
+      ShowCurrentEnvars(target, showHeader: false);
+      if (shouldPause) {
+        PauseForUser();
+      }
+      return new ParseResult { ShouldExit = true, ExitCode = 0 };
     }
 
     // Validate required unhandled arguments
@@ -520,10 +432,10 @@ public class ConsoleApp
         var isEmpty = false;
 
         if (everythingElseProp.PropertyType == typeof(string)) {
-          var value = everythingElseProp.GetValue(this) as string;
+          var value = everythingElseProp.GetValue(target) as string;
           isEmpty = string.IsNullOrWhiteSpace(value);
         } else if (everythingElseProp.PropertyType == typeof(List<string>)) {
-          var list = everythingElseProp.GetValue(this) as List<string>;
+          var list = everythingElseProp.GetValue(target) as List<string>;
           isEmpty = list == null || list.Count == 0;
         }
 
@@ -534,13 +446,24 @@ public class ConsoleApp
             Console.WriteLine($"  {unhandledAttr.Description}");
           }
           ShowHelpSuggestion();
-          //ShowUsage();
-          return (true, -105);
+          return new ParseResult { ShouldExit = true, ExitCode = -105 };
         }
       }
     }
 
-    return (exit_code != 0, exit_code);
+    return new ParseResult { ShouldExit = exit_code != 0, ExitCode = exit_code };
+  }
+
+  /// <summary>
+  /// Pauses execution and waits for user input before continuing.
+  /// </summary>
+  private static void PauseForUser()
+  {
+    Console.Write("Press any key to exit: ");
+    Console.ReadKey(true);
+    Console.CursorLeft = 0;
+    Console.Write("                       ");
+    Console.CursorLeft = 0;
   }
 
   /// <summary>
@@ -914,13 +837,12 @@ public class ConsoleApp
   }
 
   /// <summary>
-  /// Displays the current version information to the user then exits. Showing the full version with
-  /// details ('-version'; <see cref="OptVersionFull"/> ), or just the version ('-v';
-  /// <see cref="OptVersion"/> ).
+  /// Displays version information to the console.
   /// </summary>
-  protected void ShowVersion()
+  /// <param name="full">If true, shows full version details; otherwise shows just the version number.</param>
+  public void ShowVersion( bool full = false )
   {
-    if (OptVersionFull) {
+    if (full) {
       ShowHeader(true);
     } else {
       Console.WriteLine($"{AppName} v{AppVersion}");
@@ -936,8 +858,11 @@ public class ConsoleApp
     Console.Out.WriteLine($"type '{AppName}.exe /?' for help");
   }
 
-  protected void ShowUsage( string? topic = null )
+  public void ShowUsage( object target, string? topic = null )
   {
+    ArgumentNullException.ThrowIfNull(target);
+    var targetType = target.GetType();
+
     ShowHeader(true);
     Console.Out.WriteLine();
 
@@ -950,18 +875,18 @@ public class ConsoleApp
     var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
     // Find the UnhandledArguments property
-    var unhandledProp = GetType().GetProperties(bindingFlags)
+    var unhandledProp = targetType.GetProperties(bindingFlags)
       .FirstOrDefault(p => Attribute.IsDefined(p, typeof(UnhandledArgumentsAttribute)));
 
-    // Find all NamedParameters properties
-    var namedParams = GetType().GetProperties(bindingFlags)
-      .Where(p => Attribute.IsDefined(p, typeof(NamedParametersAttribute)))
+    // Find all CliArgument properties
+    var namedParams = targetType.GetProperties(bindingFlags)
+      .Where(p => Attribute.IsDefined(p, typeof(CliArgumentAttribute)))
       .Select(p => new {
         Property = p,
-        Attribute = (NamedParametersAttribute)Attribute.GetCustomAttribute(p, typeof(NamedParametersAttribute))!
+        Attribute = (CliArgumentAttribute)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute))!
       })
       .OrderBy(x => x.Attribute.Order)
-      .ThenBy(x => x.Attribute.NamedParameters[0])
+      .ThenBy(x => x.Attribute.NamedParameters.Length > 0 ? x.Attribute.NamedParameters[0] : x.Attribute.NamedCommands[0])
       .ToList();
 
     // Calculate optimal column width based on longest option name
@@ -1090,7 +1015,7 @@ public class ConsoleApp
 
     // Show environment variables section only if there are options with envars
     if (hasEnvarOptions) {
-      ShowCurrentEnvars(false);
+      ShowCurrentEnvars(target, showHeader: false);
     }
   }
 
@@ -1220,8 +1145,11 @@ public class ConsoleApp
   /// environment variable name is derived from the first parameter name in the NamedParameters
   /// array.
   /// </remarks>
-  protected void ShowCurrentEnvars( bool showHeader = true )
+  public void ShowCurrentEnvars( object target, bool showHeader = false )
   {
+    ArgumentNullException.ThrowIfNull(target);
+    var targetType = target.GetType();
+
     if (showHeader) {
       ShowHeader(false);
     }
@@ -1241,12 +1169,12 @@ public class ConsoleApp
 
     Console.Out.WriteLine();
 
-    // Find all properties with NamedParameters attribute where AllowEnvar == true
+    // Find all properties with CliArgument attribute where AllowEnvar == true
     var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    var propertiesWithEnvar = GetType().GetProperties(bindingFlags)
+    var propertiesWithEnvar = targetType.GetProperties(bindingFlags)
       .Where(p =>
       {
-        var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(p, typeof(NamedParametersAttribute));
+        var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute));
         return attr != null && attr.AllowEnvar;
       })
       .ToList();
@@ -1255,7 +1183,7 @@ public class ConsoleApp
     var maxEnvarNameLength = propertiesWithEnvar
       .Select(p =>
       {
-        var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(p, typeof(NamedParametersAttribute));
+        var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute));
         if (attr != null && attr.NamedParameters.Length > 0) {
           var envarName = attr.NamedParameters[0];
           if (AppEnvarPrefix is not null) {
@@ -1273,7 +1201,7 @@ public class ConsoleApp
       Console.Out.WriteLine("  <none found>");
     } else {
       foreach (var prop in propertiesWithEnvar) {
-        var attr = (NamedParametersAttribute?)Attribute.GetCustomAttribute(prop, typeof(NamedParametersAttribute));
+        var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(prop, typeof(CliArgumentAttribute));
         if (attr != null && attr.NamedParameters.Length > 0) {
           // Use the first parameter name + AppEnvarPrefix as the environment variable name
           var envarName = attr.NamedParameters[0];
@@ -1298,121 +1226,111 @@ public class ConsoleApp
 }
 
 /// <summary>
-/// Specifies alternative name that can be used to reference a property when binding named
-/// parameters. See the `new` in this example: `GroundZero.exe --new session-name`.
+/// Specifies command-line options that can be bound to a property. Supports both flag-style
+/// (e.g., --verbose, -v) and command-style (e.g., verbose) argument parsing.
 /// </summary>
+/// <example>
+/// // Flag-style only (requires -, --, or /)
+/// [CliArgument(namedParameters: ["verbose", "v"])]
+/// public bool Verbose { get; set; }
+///
+/// // Command-style only (no prefix required)
+/// [CliArgument(namedCommands: ["init", "create"])]
+/// public string Command { get; set; }
+///
+/// // Both styles supported
+/// [CliArgument(namedParameters: ["encoding", "enc"], namedCommands: ["encoding"])]
+/// public string Encoding { get; set; }
+/// </example>
 [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-internal class NamedParametersAttribute : Attribute
+internal class CliArgumentAttribute : Attribute
 {
   public const int DefaultPropertyOrder = 5000;
   public const int DefaultGlobalOrder = 10000;
 
   /// <summary>
-  /// An array of alternative names that can be used to reference the decorated property when
-  /// binding named parameters from the command line. For example, if a property is decorated with
-  /// `[NamedParameters("new", "create")]`, then the command-line arguments `--new` or `--create`
-  /// can be used to set the value of the property.
+  /// Names that require a flag prefix (-, --, or /) to be recognized.
+  /// Example: ["verbose", "v"] allows -verbose, --verbose, -v, --v, /verbose, /v
   /// </summary>
   public string[] NamedParameters { get; } = [];
 
   /// <summary>
-  /// Indicates whether the value for this parameter can also be set via an environment variable. If
-  /// true, the environment variable name is derived from the first element in the NamedParameters
-  /// array, prefixed with the application's environment variable prefix (if any).
+  /// Names that can be used without a flag prefix.
+  /// Example: ["init", "create"] allows: app init or app create
+  /// </summary>
+  public string[] NamedCommands { get; } = [];
+
+  /// <summary>
+  /// Indicates whether the value for this option can also be set via an environment variable.
+  /// The environment variable name is derived from the first name in NamedParameters,
+  /// prefixed with the application's environment variable prefix (if any).
   /// </summary>
   public bool AllowEnvar { get; }
 
   /// <summary>
-  /// Indicates whether the value for this parameter is optional. If true, the parameter can be used
-  /// as a flag without a value (e.g. `--verbose`), in which case the property will be set to an
-  /// empty string to indicate that the flag was present but no value was provided. If false, a
-  /// value must be provided for the parameter (e.g. `--output filename.txt`), and if it is missing,
-  /// an error will be raised during argument parsing.
+  /// Indicates whether the value for this option is optional. If true, the option can be used
+  /// as a flag without a value (e.g. --verbose), in which case the property will be set to an
+  /// empty string to indicate that the flag was present but no value was provided.
   /// </summary>
   public bool ValueIsOptional { get; }
 
   /// <summary>
-  /// An optional description for this parameter, which can be used in help text or error messages
-  /// to provide additional context about the parameter's purpose or usage. This description does
-  /// not affect the behavior of the parameter parsing but can be helpful for users to understand
-  /// what the parameter does when they request help or encounter an error related to this
-  /// parameter.
+  /// Description for this option, used in help text and error messages.
   /// </summary>
   public string? Description { get; }
 
   /// <summary>
-  /// An optional array of allowed values for this parameter. If specified, when parsing
-  /// command-line arguments, the value provided must be one of these allowed values.
+  /// Optional array of allowed values for this option. If specified, the value provided
+  /// must be one of these allowed values (case-insensitive comparison).
   /// </summary>
   public string[]? AllowedValues { get; }
 
+  /// <summary>
+  /// Default value for this option. Applied before environment variables and command-line arguments.
+  /// </summary>
   public object? DefaultValue { get; } = null;
 
   /// <summary>
-  /// Specifies the display order of this parameter in usage output. Parameters with lower Order
-  /// values are displayed first. If two parameters have the same Order value, they will be
-  /// displayed in the order they are defined in the code or alphabetically. Default value is 0.
+  /// Display order in usage output. Options with lower Order values are displayed first.
+  /// If two options have the same Order value, they are sorted alphabetically.
   /// </summary>
   public int Order { get; } = DefaultPropertyOrder;
 
-  /// <summary>
-  /// Initializes a new instance of the NamedParametersAttribute class with the specified parameter
-  /// names.
-  /// </summary>
-  /// <remarks>
-  /// This constructor allows for the specification of parameter names that can be used when
-  /// invoking methods with named arguments. The additional parameters in the constructor are set to
-  /// their default values.
-  /// </remarks>
-  /// <param name="names">An array of strings representing the names of the parameters that can be used with named arguments.</param>
-  public NamedParametersAttribute( params string[] names )
-    : this(names, false, false, null, null, DefaultPropertyOrder, null) { }
-
-  /// <summary>
-  /// Initializes a new instance of the NamedParametersAttribute class with the specified parameter
-  /// name and options.
-  /// </summary>
-  /// <param name="name">The name of the parameter.</param>
-  /// <param name="allowEnvar">Indicates whether the value for this parameter can also be set via an environment variable.</param>
-  /// <param name="valueIsOptional">Indicates whether the value for this parameter is optional.</param>
-  /// <param name="description">An optional description for this parameter.</param>
-  /// <param name="allowedValues">An optional array of allowed values for this parameter.</param>
-  /// <param name="order">Specifies the display order of this parameter in usage output.</param>
-  public NamedParametersAttribute( string name, bool allowEnvar = false, bool valueIsOptional = false, string? description = null, string[]? allowedValues = null, int order = DefaultPropertyOrder, object? defaultValue = null )
-    : this([name], allowEnvar, valueIsOptional, description, allowedValues, order, defaultValue) { }
-
-  /// <summary>
-  /// Initializes a new instance of the NamedParametersAttribute class with the specified parameter
-  /// names and options.
-  /// </summary>
-  /// <param name="names">The names of the parameters.</param>
-  /// <param name="allowEnvar">Indicates whether the value for this parameter can also be set via an environment variable.</param>
-  /// <param name="valueIsOptional">Indicates whether the value for this parameter is optional.</param>
-  /// <param name="description">An optional description for this parameter.</param>
-  /// <param name="allowedValues">An optional array of allowed values for this parameter.</param>
-  /// <param name="order">Specifies the display order of this parameter in usage output.</param>
-  /// <param name="defaultValue"></param>
-  public NamedParametersAttribute( string[] names, bool allowEnvar = false, bool valueIsOptional = false, string? description = null, string[]? allowedValues = null, int order = DefaultPropertyOrder, object? defaultValue = null )
+  // Full constructor with all parameters
+  public CliArgumentAttribute(
+    string? namedParameter = null,
+    string[]? namedParameters = null,
+    string? namedCommand = null,
+    string[]? namedCommands = null,
+    bool allowEnvar = false,
+    bool valueIsOptional = false,
+    string? description = null,
+    string[]? allowedValues = null,
+    int order = DefaultPropertyOrder,
+    object? defaultValue = null )
   {
-    NamedParameters = names;
+    NamedParameters = namedParameters is not null && namedParameters.Length > 0
+      ? namedParameters
+      : !string.IsNullOrEmpty(namedParameter)
+        ? [namedParameter]
+        : [];
+    NamedCommands = namedCommands is not null && namedCommands.Length > 0
+      ? namedCommands
+      : !string.IsNullOrEmpty(namedCommand)
+        ? [namedCommand]
+        : [];
     AllowEnvar = allowEnvar;
     ValueIsOptional = valueIsOptional;
     Description = description;
     AllowedValues = allowedValues;
     Order = order;
     DefaultValue = defaultValue;
-  }
-}
 
-/// <summary>
-/// Specifies alternative name that can be used to reference a property when binding named commands.
-/// For instance, you can use `app.exe new value` instead of `app.exe --new value`.
-/// </summary>
-[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-internal class NamedCommandsAttribute : Attribute
-{
-  public string[] NamedCommands { get; }
-  public NamedCommandsAttribute( params string[] names ) { NamedCommands = names; }
+    // Validation: at least one of NamedParameters or NamedCommands must be provided
+    if (NamedParameters.Length == 0 && NamedCommands.Length == 0) {
+      throw new ArgumentException("At least one of namedParameters or namedCommands must be specified.");
+    }
+  }
 }
 
 /// <summary>
@@ -1440,17 +1358,18 @@ internal class UnhandledArgumentsAttribute : Attribute
   }
 }
 
-//internal class CliArgumentAttribute : Attribute
-//{
-//  public bool? HandlesAllNonParameters { get; init; } = false;
-//  public string[] NamedParameters { get; } = [];
-//  public string[] NamedCommands { get; } = [];
-//  public string EnvarName { get; }
-//  public CliArgumentAttribute( string[]? namedParameters = null, string[]? namedCommands = null, string? envarName = null, bool? handlesAllNonParameters = null )
-//  {
-//    NamedParameters = namedParameters ?? [];
-//    NamedCommands = namedCommands ?? [];
-//    EnvarName = envarName ?? NamedParameters.FirstOrDefault() ?? string.Empty;
-//    HandlesAllNonParameters = handlesAllNonParameters ?? false;
-//  }
-//}
+/// <summary>
+/// Represents the result of parsing command-line arguments.
+/// </summary>
+public record ParseResult
+{
+  /// <summary>
+  /// Indicates whether the application should exit immediately after parsing (e.g., help or version was requested).
+  /// </summary>
+  public bool ShouldExit { get; init; }
+
+  /// <summary>
+  /// The exit code to return if the application should exit.
+  /// </summary>
+  public int ExitCode { get; init; }
+}
