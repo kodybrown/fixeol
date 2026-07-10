@@ -1,16 +1,17 @@
 @echo off
 
 set "AppName=FixEol"
+set "Configuration=Release"
+set "Runtime=win-x64"
 
 cd "%~dp0"
 
-REM dotnet publish .\%AppName%.csproj -c Debug -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=false -o ./publish/win-x64
-
-dotnet publish .\%AppName%.csproj -c Debug -r win-x64 -o ./publish/win-x64
+dotnet publish ".\%AppName%.csproj" -c %Configuration% -r %Runtime% --self-contained false -o ".\publish\%Runtime%"
 
 if %ERRORLEVEL% NEQ 0 pause & exit /B
 
 if exist "%UserProfile%\Bin\" (
-  copy ".\publish\win-x64\*" "%UserProfile%\Bin\apps\%AppName%\"
+  if not exist "%UserProfile%\Bin\apps\%AppName%\" mkdir "%UserProfile%\Bin\apps\%AppName%\"
+  copy /Y ".\publish\%Runtime%\*" "%UserProfile%\Bin\apps\%AppName%\"
   if %ERRORLEVEL% NEQ 0 pause
 )

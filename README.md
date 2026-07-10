@@ -1,53 +1,50 @@
 # FixEol
 
-![dotnet-core-build-develop](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build/badge.svg)
+![dotnet-core-build](https://github.com/kodybrown/fixeol/workflows/dotnet-core-build/badge.svg)
 ![dotnet-core-release](https://github.com/kodybrown/fixeol/workflows/dotnet-core-release/badge.svg)
 
-Fixes the line-endings of the specified file(s). The line-ending used can be specified via the command-line.
+FixEol normalizes line endings for one or more files, directories, or wildcard patterns.
 
 Click here for the [latest release](https://github.com/kodybrown/fixeol/releases/latest/).
 
-----
+## Examples
 
-You can fix a file at a time or use wildcards; even multiple file patterns. For instance:
-
-    fixeol /r *.css *.js
-
-will fix the line endings of all .css and .js files in the current and all sub-directories.
+```console
+FixEol --recursive --eol crlf *.css *.js
+FixEol --eol lf --encoding utf8 README.md
+FixEol /r /backup src\*.cs
+```
 
 ## Usage
 
-    feol.exe [options] [commands] [-file] "filename"
+```console
+FixEol [options] "file-patterns" ["file-patterns"] [...]
+```
 
-       file      the full filename of the file to manipulate.
-                 file or feol_file (below) is required.
+File patterns can be specific files, directories, or wildcards. Use `--recursive`, `-r`, or `-s` to apply patterns to subdirectories.
 
-    commands:
+## Options
 
-       /eol [crlf|cr|lf]  override the default eol settings of the operating system.
-                          also supports [\r\n|\r|\n] for backwards compatibility.
+- `--eol [os|crlf|cr|lf|\r\n|\r|\n]` chooses the output line ending. The default is `os`.
+- `--encoding [os|ascii|ansi|utf32|utf32bom|utf7|utf8|utf8bom|unicode|windows1252|win1252]` chooses the output encoding. The default is `os`.
+- `--recursive`, `-r`, `-s` scans subdirectories.
+- `--backup` keeps the original file as `.bak`.
+- `--progress` prints per-file progress.
+- `--verbose` prints additional processing details.
+- `--pause` waits for a key before exiting.
+- `--help`, `-?`, `-h`, or `help` prints usage.
+- `-v` prints the version; `--version` prints full app metadata.
 
-       /encoding [enc]    override the default encoding settings of source file.
-                          supports `ascii`, `utf8`, `utf7`, `utc32`, and `unicode`.
+On Windows, options can use `-`, `--`, or `/` prefixes. Use `!` to turn off a boolean option from the command line, for example `--!verbose`.
 
-    options:
+## Environment Variables
 
-       /v /verbose        output additional details (default:false)
-       /b /backup         backup (default:false)
-       /r /recurse        apply the file pattern(s) to the current
-                          and all sub-directories (default:false)
-       /p /pause          pause when finished (default:false)
+Command-line arguments override environment variables.
 
-       /set               displays the current environment variables
-                          then exits. All other options are ignored.
-
-       *use ! to set any option to opposite value. overrides environment variables.
-        for example use /!v to not use verbose.
-
-    environment variables:
-
-       feol_file=filename           sets -file "filename"
-       feol_verbose=true|false      sets /v or /!v
-       feol_pause=true|false        sets /pause or /!pause
-
-         *command-line arguments override environment variables
+- `fixeol_eol`
+- `fixeol_encoding`
+- `fixeol_recursive`
+- `fixeol_backup`
+- `fixeol_progress`
+- `fixeol_verbose`
+- `fixeol_pause`

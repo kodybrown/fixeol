@@ -16,6 +16,8 @@ public class FixEol
   /// <returns></returns>
   public static int Main( string[] arguments )
   {
+    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
     var app = new FixEol();
     var cli = new CliArgumentBinder(arguments, "FixEol") {
       AppEnvarPrefix = "fixeol_"
@@ -186,6 +188,7 @@ public class FixEol
 
       var files = new List<string>();
       var message = "Working: ";
+      var showProgress = OptVerbose || OptShowProgress;
 
       // Remove empty or whitespace-only patterns
       FilePatterns = FilePatterns.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
@@ -277,6 +280,8 @@ public class FixEol
         //Console.CursorVisible = false;
         if (OptVerbose) {
           Console.WriteLine("Processing file: {0}", filename);
+        }
+        if (showProgress) {
           Console.Write(message);
         }
 
@@ -313,8 +318,8 @@ public class FixEol
 
             writer.Write(line + NewLine);
 
-            if (OptVerbose && DateTime.Now > nextOutput) { // || r.EndOfStream
-              Console.CursorLeft = message.Length;
+            if (showProgress && DateTime.Now > nextOutput) { // || r.EndOfStream
+              TrySetCursorLeft(message.Length);
               curPos += line.Length + NewLine.Length;
               Console.Write("{0:0.00}%   ", Math.Max(0, Math.Min(100, (curPos * 100F) / totalSize)));
               nextOutput = DateTime.Now.AddMilliseconds(5);
@@ -351,8 +356,8 @@ public class FixEol
           //Console.CursorVisible = true;
         }
 
-        if (OptVerbose) {
-          Console.CursorLeft = message.Length;
+        if (showProgress) {
+          TrySetCursorLeft(message.Length);
           Console.WriteLine("100.00%  ");
         }
       }
@@ -371,9 +376,22 @@ public class FixEol
     return 0;
   }
 
+  private static void TrySetCursorLeft( int left )
+  {
+    try {
+      if (!Console.IsOutputRedirected) {
+        Console.CursorLeft = left;
+      }
+    } catch (IOException) {
+      // Non-interactive hosts can report an invalid console handle.
+    } catch (InvalidOperationException) {
+      // Output redirection can change while the process is running.
+    }
+  }
+
   private static Encoding GetEncoding( string? encoding )
   {
-    switch (encoding?.Replace("-", "") ?? string.Empty) {
+    switch ((encoding ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant()) {
       case "ascii":
         return Encoding.ASCII;
       case "ansi":

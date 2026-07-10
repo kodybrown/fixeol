@@ -3,6 +3,7 @@ namespace Bricksoft.PowerCode;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -13,6 +14,8 @@ using System.Reflection;
 /// </summary>
 public class CliArgumentBinder
 {
+  private const int DefaultConsoleWidth = 80;
+
   public string AppName { get; set; } = string.Empty;
   public string? AppVersion { get; set; } = null;
   public string? AppEnvarPrefix { get; set; } = null;
@@ -867,7 +870,7 @@ public class CliArgumentBinder
     Console.Out.WriteLine();
 
     // Determine console width (minimum 80 characters)
-    var consoleWidth = Math.Max(80, Console.WindowWidth);
+    var consoleWidth = GetConsoleWidth();
     var minColWidth = 20;
     var maxColWidth = 40;
 
@@ -1154,7 +1157,7 @@ public class CliArgumentBinder
       ShowHeader(false);
     }
 
-    var consoleWidth = Math.Max(80, Console.WindowWidth);
+    var consoleWidth = GetConsoleWidth();
     var minColWidth = 10;
     var maxColWidth = 40;
 
@@ -1222,6 +1225,21 @@ public class CliArgumentBinder
     }
 
     Console.Out.WriteLine();
+  }
+
+  private static int GetConsoleWidth()
+  {
+    try {
+      if (Console.IsOutputRedirected) {
+        return DefaultConsoleWidth;
+      }
+
+      return Math.Max(DefaultConsoleWidth, Console.WindowWidth);
+    } catch (IOException) {
+      return DefaultConsoleWidth;
+    } catch (InvalidOperationException) {
+      return DefaultConsoleWidth;
+    }
   }
 }
 

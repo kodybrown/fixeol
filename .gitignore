@@ -8,6 +8,8 @@
 **/CodeSnapshot.txt
 
 publish/
+**/*.bak
+**/*.original
 
 # System files
 **/.DS_Store

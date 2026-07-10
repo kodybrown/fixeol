@@ -32,7 +32,7 @@ trim_trailing_whitespace = true
 ###################################
 
 # Visual Studio files
-[*.sln]
+[*.{sln,slnx}]
 #end_of_line = lf
 indent_size = 2
 tab_width = 2
@@ -98,6 +98,13 @@ indent_size = 2
 tab_width = 2
 indent_style = space
 
+
+# YAML files
+[*.{yaml,yml}]
+#end_of_line = lf
+indent_size = 2
+tab_width = 2
+indent_style = space
 # Markdown files
 [*.{md,markdown}]
 max_line_length = off
