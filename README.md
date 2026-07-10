@@ -13,6 +13,7 @@ Click here for the [latest release](https://github.com/kodybrown/fixeol/releases
 FixEol --recursive --eol crlf *.css *.js
 FixEol --eol lf --encoding utf8 README.md
 FixEol /r /backup src\*.cs
+FixEol --encoding utf8 --eol crlf -r *.code-workspace *.cs *.csproj *.bat -exclude specific-file.bat
 ```
 
 ## Usage
@@ -28,6 +29,7 @@ File patterns can be specific files, directories, or wildcards. Use `--recursive
 - `--eol [os|crlf|cr|lf|\r\n|\r|\n]` chooses the output line ending. The default is `os`.
 - `--encoding [os|ascii|ansi|utf32|utf32bom|utf7|utf8|utf8bom|unicode|windows1252|win1252]` chooses the output encoding. The default is `os`.
 - `--recursive`, `-r`, `-s` scans subdirectories.
+- `--exclude [pattern]` skips matching file names or paths. Repeat it for multiple excludes; excludes win over include patterns.
 - `--backup` keeps the original file as `.bak`.
 - `--progress` prints per-file progress.
 - `--verbose` prints additional processing details.
@@ -39,11 +41,12 @@ On Windows, options can use `-`, `--`, or `/` prefixes. Use `!` to turn off a bo
 
 ## Environment Variables
 
-Command-line arguments override environment variables.
+Command-line arguments override environment variables. Use semicolons to separate multiple `fixeol_exclude` patterns.
 
 - `fixeol_eol`
 - `fixeol_encoding`
 - `fixeol_recursive`
+- `fixeol_exclude`
 - `fixeol_backup`
 - `fixeol_progress`
 - `fixeol_verbose`

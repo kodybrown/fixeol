@@ -18,6 +18,8 @@ public class FixEolCliTests
 
     Assert.True(result.ExitCode == 0, result.Output);
     Assert.Contains("Usage:", result.Output);
+    Assert.Contains("-exclude [string[]]", result.Output);
+    Assert.Contains("(repeatable)", result.Output);
   }
 
   [Fact]
@@ -33,6 +35,34 @@ public class FixEolCliTests
 
       Assert.True(result.ExitCode == 0, result.Output);
       Assert.Equal("alpha\nbeta\n", Encoding.ASCII.GetString(File.ReadAllBytes(filePath)));
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Fact]
+  public void ExcludePatternSkipsMatchingFileName()
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var includedPath = Path.Combine(tempDirectory.FullName, "keep.cs");
+      var excludedPath = Path.Combine(tempDirectory.FullName, "specific-file.bat");
+      File.WriteAllText(includedPath, "include\n", new UTF8Encoding(false));
+      File.WriteAllText(excludedPath, "exclude\n", new UTF8Encoding(false));
+
+      var result = RunFixEol(
+        "--encoding", "utf8",
+        "--eol", "crlf",
+        "-r",
+        Path.Combine(tempDirectory.FullName, "*.cs"),
+        Path.Combine(tempDirectory.FullName, "*.bat"),
+        "-exclude", "specific-file.bat"
+      );
+
+      Assert.True(result.ExitCode == 0, result.Output);
+      Assert.Equal("include\r\n", File.ReadAllText(includedPath, Encoding.UTF8));
+      Assert.Equal("exclude\n", File.ReadAllText(excludedPath, Encoding.UTF8));
     } finally {
       tempDirectory.Delete(true);
     }

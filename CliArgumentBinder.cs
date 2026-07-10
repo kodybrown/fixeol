@@ -972,6 +972,8 @@ public class CliArgumentBinder
             _ => attr.DefaultValue.ToString()
           };
           description += $" (default:{defaultValueStr})";
+        } else if (propType == typeof(string[])) {
+          description += " (repeatable)";
         } else if (attr.ValueIsOptional || propType == typeof(bool)) {
           description += " (optional)";
         } else {

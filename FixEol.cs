@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Bricksoft.PowerCode;
 
 public class FixEol
@@ -141,6 +142,17 @@ public class FixEol
   public string? OptEncoding { get; set; } = null;
 
   /// <summary>
+  /// Gets or sets file names or patterns to exclude from processing.
+  /// </summary>
+  [CliArgument(
+    namedParameter: "exclude",
+    allowEnvar: true,
+    description: "Exclude files whose name or path matches this pattern. This supercedes any file(s) found by the include file-pattern(s).",
+    order: 303
+  )]
+  public string[] OptExcludePatterns { get; set; } = [];
+
+  /// <summary>
   /// Gets or sets the file pattern(s) to process.
   /// </summary>
   [UnhandledArguments(
@@ -192,6 +204,10 @@ public class FixEol
 
       // Remove empty or whitespace-only patterns
       FilePatterns = FilePatterns.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+      var excludePatterns = OptExcludePatterns
+        .Where(p => !string.IsNullOrWhiteSpace(p))
+        .Select(p => p.Trim())
+        .ToArray();
 
       // Process each file pattern and build the list of files to manipulate.
       // This should support individual files, directories, and wildcard patterns (e.g. *.txt).
@@ -262,6 +278,17 @@ public class FixEol
             return 1;
           }
         }
+      }
+
+      if (excludePatterns.Length > 0) {
+        files = files
+          .Where(file => !excludePatterns.Any(pattern => IsExcluded(file, pattern)))
+          .Distinct(PathComparer)
+          .ToList();
+      } else {
+        files = files
+          .Distinct(PathComparer)
+          .ToList();
       }
 
       foreach (var filename in files) {
@@ -388,6 +415,65 @@ public class FixEol
       // Output redirection can change while the process is running.
     }
   }
+
+  private static bool IsExcluded( string file, string pattern )
+  {
+    if (string.IsNullOrWhiteSpace(pattern)) {
+      return false;
+    }
+
+    var fullPath = Path.GetFullPath(file);
+    var normalizedPattern = NormalizePath(pattern.Trim());
+    var fileName = Path.GetFileName(file);
+    var relativePath = NormalizePath(Path.GetRelativePath(Environment.CurrentDirectory, fullPath));
+    var normalizedFullPath = NormalizePath(fullPath);
+
+    return MatchesPattern(fileName, normalizedPattern)
+        || MatchesPattern(relativePath, normalizedPattern)
+        || MatchesPattern(normalizedFullPath, normalizedPattern);
+  }
+
+  private static bool MatchesPattern( string value, string pattern )
+  {
+    if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(pattern)) {
+      return false;
+    }
+
+    var normalizedValue = NormalizePath(value);
+    if (ContainsWildcard(pattern)) {
+      var regexPattern = "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+      var regexOptions = RegexOptions.CultureInvariant;
+      if (OperatingSystem.IsWindows()) {
+        regexOptions |= RegexOptions.IgnoreCase;
+      }
+
+      return Regex.IsMatch(normalizedValue, regexPattern, regexOptions);
+    }
+
+    return normalizedValue.Equals(pattern, PathComparison)
+        || normalizedValue.EndsWith("/" + pattern, PathComparison);
+  }
+
+  private static bool ContainsWildcard( string pattern )
+  {
+    return pattern.IndexOfAny(['*', '?']) > -1;
+  }
+
+  private static string NormalizePath( string value )
+  {
+    var normalized = value.Replace('\\', '/');
+    while (normalized.StartsWith("./", StringComparison.Ordinal)) {
+      normalized = normalized[2..];
+    }
+
+    return normalized;
+  }
+
+  private static StringComparison PathComparison
+    => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+  private static StringComparer PathComparer
+    => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
   private static Encoding GetEncoding( string? encoding )
   {
