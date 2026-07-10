@@ -1,12 +1,13 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-**/CodeSnapshot.txt
+# Project-specific ignores
+**/.code_compare
 **/.ground_zero
 **/notes*.md
 **/todo*.md
+**/CodeSnapshot.txt
 
-**/publish
-
+publish/
 
 # System files
 **/.DS_Store
@@ -23,6 +24,18 @@
 # Test tools
 **/coverage/
 
+# Angular
+**/.angular/cache/
+**/typings/
+
+# Node
+**/node_modules/
+**/npm-debug.log*
+
+# Compiled output
+**/dist/
+**/tmp/
+**/.sass-cache/
 
 # Logs
 **/logs/

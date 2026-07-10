@@ -1,4 +1,4 @@
-# CODEFORMAT.md
+# Code Style and Formatting
 
 Please save these code format rules so that when you generate code, you will always follow them.
 
@@ -23,11 +23,21 @@ Code style (enforced via .editorconfig)
 - Prefer pattern matching where it makes sense.
 - Prefer null-coalescing and null-conditional operators where it makes sense.
 - Use async/await for asynchronous code.
-- Use namespaces that match folder structure; use file-scoped namespaces at top of file.
+- Use file-scoped namespaces at top of file
+- Use namespaces that match folder structure.
 - Usings after namespaces; System.* usings first, then third-party, then project.
 
 That '.editorconfig' and 'omnisharp.json' files match the format I have specified here (and more).
 This is just the most important parts.
+
+## Code Generation Best Practices
+
+- Follow patterns in existing code: Use DI, async/await, pattern matching.
+- Generate code in appropriate projects: Shared for models/services, WebAPI for controllers, WebAngular for components.
+- Avoid hardcoding; use configuration options.
+- Test generated code with unit tests and Resty suites.
+- Update Swagger XML docs for API changes.
+- Ensure generated code adheres to .editorconfig rules for consistent style.
 
 ## Commit Message Guidelines
 
@@ -43,12 +53,3 @@ When committing changes to the repository, please follow these guidelines for wr
 - Avoid using "I" or "we" in commit messages.
 - Proofread your messages for clarity and typos.
 - Use consistent formatting for similar types of changes.
-
-## Code Generation Best Practices
-
-- Follow patterns in existing code: Use DI, async/await, pattern matching.
-- Generate code in appropriate projects: Shared for models/services, WebAPI for controllers, WebAngular for components.
-- Avoid hardcoding; use configuration options.
-- Test generated code with unit tests and Resty suites.
-- Update Swagger XML docs for API changes.
-- Ensure generated code adheres to .editorconfig rules for consistent style.
