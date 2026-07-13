@@ -11,7 +11,7 @@
     <Description>Fixes the EOL (end of line) characters in files.</Description>
     <Company></Company>
     <Copyright>Copyright (c) 2003-2026 Kody Brown</Copyright>
-    <Authors>thewizard@wasatchwizard.com</Authors>
+    <Authors>wasatchwizard</Authors>
     <RepositoryUrl>https://github.com/kodybrown/fixeol</RepositoryUrl>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <StartupObject></StartupObject>
@@ -66,13 +66,12 @@
 
     <!-- Removes unused code to reduce binary size. Effective for simple
          apps but may break if dependencies aren't trim-compatible.
-         Recommended: Use cautiously, test thoroughly, especially with WebAPI and shared DLLs. -->
+         Recommended: Use cautiously, test thoroughly, especially with reflection-heavy dependencies. -->
     <!-- <PublishTrimmed>True</PublishTrimmed> -->
 
     <!-- Directory for publish output. -->
     <!-- <PublishDir>$(MSBuildThisFileDirectory)/publish</PublishDir> -->
     <!-- <PublishDir>$(MSBuildProjectDirectory)/publish/$(RuntimeIdentifier)/$(Configuration)</PublishDir> -->
-    <!-- <PublishDir>$(MSBuildProjectDirectory)/../publish/Spark.WebAPI/$(RuntimeIdentifier)/$(Configuration)</PublishDir> -->
   </PropertyGroup>
 
 </Project>

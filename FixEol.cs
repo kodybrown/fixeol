@@ -147,7 +147,7 @@ public class FixEol
   [CliArgument(
     namedParameter: "exclude",
     allowEnvar: true,
-    description: "Exclude files whose name or path matches this pattern. This supercedes any file(s) found by the include file-pattern(s).",
+    description: "Exclude files whose name or path matches this pattern. This supersedes any file(s) found by the include file-pattern(s).",
     order: 303
   )]
   public string[] OptExcludePatterns { get; set; } = [];

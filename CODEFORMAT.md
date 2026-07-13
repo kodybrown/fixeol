@@ -32,11 +32,11 @@ This is just the most important parts.
 
 ## Code Generation Best Practices
 
-- Follow patterns in existing code: Use DI, async/await, pattern matching.
-- Generate code in appropriate projects: Shared for models/services, WebAPI for controllers, WebAngular for components.
+- Follow patterns in existing code.
+- Put production code in the app project and CLI behavior coverage in FixEol.Tests.
 - Avoid hardcoding; use configuration options.
-- Test generated code with unit tests and Resty suites.
-- Update Swagger XML docs for API changes.
+- Test generated code with unit tests and CLI smoke tests.
+- Update README/help docs for user-facing CLI changes.
 - Ensure generated code adheres to .editorconfig rules for consistent style.
 
 ## Commit Message Guidelines
