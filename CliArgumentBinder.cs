@@ -136,6 +136,15 @@ public class CliArgumentBinder
     return (arg, isFlag, flagVal);
   }
 
+  private static bool TryParseEnum( Type enumType, string value, out object? result )
+  {
+    if (Enum.TryParse(enumType, value, ignoreCase: true, out result)) {
+      return true;
+    }
+
+    return Enum.TryParse(enumType, enumType.Name + value, ignoreCase: true, out result);
+  }
+
   /// <summary>
   /// Parses command-line arguments and binds them to properties on the specified target object
   /// decorated with NamedParameters, NamedCommands, and UnhandledArguments attributes.
@@ -167,26 +176,26 @@ public class CliArgumentBinder
     //
     foreach (var paramProp in namedParameters) {
       var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
-      if (attr?.DefaultValue != null) {
+      if (attr?.DefaultIfMissing != null) {
         // Check if the default value type matches the property type
-        if (paramProp.PropertyType == typeof(bool) && attr.DefaultValue is bool boolDefault) {
+        if (paramProp.PropertyType == typeof(bool) && attr.DefaultIfMissing is bool boolDefault) {
           paramProp.SetValue(target, boolDefault);
-        } else if (paramProp.PropertyType == typeof(int) && attr.DefaultValue is int intDefault) {
+        } else if (paramProp.PropertyType == typeof(int) && attr.DefaultIfMissing is int intDefault) {
           paramProp.SetValue(target, intDefault);
-        } else if (paramProp.PropertyType == typeof(string) && attr.DefaultValue is string stringDefault) {
+        } else if (paramProp.PropertyType == typeof(string) && attr.DefaultIfMissing is string stringDefault) {
           paramProp.SetValue(target, stringDefault);
         } else if (paramProp.PropertyType == typeof(string[])) {
-          if (attr.DefaultValue is string[] arrayDefault) {
+          if (attr.DefaultIfMissing is string[] arrayDefault) {
             paramProp.SetValue(target, arrayDefault);
-          } else if (attr.DefaultValue is string stringValue) {
+          } else if (attr.DefaultIfMissing is string stringValue) {
             // Support single string that gets converted to array
             paramProp.SetValue(target, new[] { stringValue });
           }
         } else {
           // Try to set the value directly if types match
-          var defaultType = attr.DefaultValue.GetType();
+          var defaultType = attr.DefaultIfMissing.GetType();
           if (paramProp.PropertyType.IsAssignableFrom(defaultType)) {
-            paramProp.SetValue(target, attr.DefaultValue);
+            paramProp.SetValue(target, attr.DefaultIfMissing);
           } else {
             Console.WriteLine($"Warning: Default value type mismatch for property {paramProp.Name}. Expected {paramProp.PropertyType.Name}, got {defaultType.Name}");
           }
@@ -279,8 +288,25 @@ public class CliArgumentBinder
             Console.WriteLine($"Missing string value for argument: {arg}");
             exit_code = -100;
           }
+        } else if (paramProp.PropertyType.IsEnum) {
+          var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
+          var isOptional = attr?.ValueIsOptional ?? false;
+          i = GetSubArgument(_arguments, i, out var found, out var value, ignoreFlagSymbols: !isOptional);
+
+          if (found && value != null && TryParseEnum(paramProp.PropertyType, value, out var enumValue)) {
+            paramProp.SetValue(target, enumValue);
+          } else if (!found && isOptional) {
+            var defaultValue = attr?.DefaultIfNoValue ?? Enum.GetValues(paramProp.PropertyType).GetValue(0);
+            paramProp.SetValue(target, defaultValue);
+          } else {
+            Console.WriteLine(found
+              ? $"Invalid value '{value}' for argument: {arg}"
+              : $"Missing value for argument: {arg}");
+            Console.WriteLine(FormatAllowedValues(Enum.GetNames(paramProp.PropertyType)));
+            exit_code = found ? -104 : -100;
+          }
         } else {
-          Console.WriteLine($"Unsupported parameter type for argument: {arg} (must be bool, int, or string)");
+          Console.WriteLine($"Unsupported parameter type for argument: {arg} (must be bool, int, string, string[], or enum)");
           exit_code = -102;
         }
       }
@@ -321,6 +347,13 @@ public class CliArgumentBinder
                 .Select(s => s.Trim())
                 .ToArray();
               paramProp.SetValue(target, ar);
+            } else if (paramProp.PropertyType.IsEnum) {
+              if (TryParseEnum(paramProp.PropertyType, envVal, out var enumValue)) {
+                paramProp.SetValue(target, enumValue);
+              } else {
+                Console.WriteLine($"Invalid enum value for environment variable {envarName}: {envVal}");
+                Console.WriteLine(FormatAllowedValues(Enum.GetNames(paramProp.PropertyType)));
+              }
             } else {
               throw new Exception("Unsupported parameter type for environment variable property: " + paramProp.PropertyType.Name);
             }
@@ -966,10 +999,10 @@ public class CliArgumentBinder
         var description = attr.Description ?? string.Empty;
 
         // Add default value indicator
-        if (attr.DefaultValue != null) {
-          var defaultValueStr = attr.DefaultValue switch {
+        if (attr.DefaultIfMissing != null) {
+          var defaultValueStr = attr.DefaultIfMissing switch {
             bool b => b.ToString().ToLowerInvariant(),
-            _ => attr.DefaultValue.ToString()
+            _ => attr.DefaultIfMissing.ToString()
           };
           description += $" (default:{defaultValueStr})";
         } else if (propType == typeof(string[])) {
@@ -995,6 +1028,10 @@ public class CliArgumentBinder
         // Show allowed values on separate line if present
         if (attr.AllowedValues != null && attr.AllowedValues.Length > 0) {
           var allowedText = FormatAllowedValues(attr.AllowedValues);
+          var wrappedAllowed = WrapText(allowedText, consoleWidth - colWidth, colWidth);
+          Console.Out.WriteLine($"  {new string(' ', colWidth - 2)}{wrappedAllowed}");
+        } else if (propType.IsEnum) {
+          var allowedText = FormatAllowedValues(Enum.GetNames(propType).Select(x => x.ToLowerInvariant()).ToArray());
           var wrappedAllowed = WrapText(allowedText, consoleWidth - colWidth, colWidth);
           Console.Out.WriteLine($"  {new string(' ', colWidth - 2)}{wrappedAllowed}");
         }
@@ -1051,6 +1088,8 @@ public class CliArgumentBinder
       return $"{formattedNames} [time]";
     } else if (propertyType == typeof(string[])) {
       return $"{formattedNames} [string[]]";
+    } else if (propertyType.IsEnum) {
+      return $"{formattedNames} [enum]";
     } else {
       return $"{formattedNames} [value]";
     }
@@ -1263,7 +1302,7 @@ public class CliArgumentBinder
 /// public string Encoding { get; set; }
 /// </example>
 [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-internal class CliArgumentAttribute : Attribute
+public class CliArgumentAttribute : Attribute
 {
   public const int DefaultPropertyOrder = 5000;
   public const int DefaultGlobalOrder = 10000;
@@ -1308,7 +1347,12 @@ internal class CliArgumentAttribute : Attribute
   /// <summary>
   /// Default value for this option. Applied before environment variables and command-line arguments.
   /// </summary>
-  public object? DefaultValue { get; } = null;
+  public object? DefaultIfMissing { get; } = null;
+
+  /// <summary>
+  /// Value applied when an optional-valued argument is present without a value.
+  /// </summary>
+  public object? DefaultIfNoValue { get; } = null;
 
   /// <summary>
   /// Display order in usage output. Options with lower Order values are displayed first.
@@ -1327,7 +1371,8 @@ internal class CliArgumentAttribute : Attribute
     string? description = null,
     string[]? allowedValues = null,
     int order = DefaultPropertyOrder,
-    object? defaultValue = null )
+    object? defaultIfMissing = null,
+    object? defaultIfNoValue = null )
   {
     NamedParameters = namedParameters is not null && namedParameters.Length > 0
       ? namedParameters
@@ -1344,7 +1389,8 @@ internal class CliArgumentAttribute : Attribute
     Description = description;
     AllowedValues = allowedValues;
     Order = order;
-    DefaultValue = defaultValue;
+    DefaultIfMissing = defaultIfMissing;
+    DefaultIfNoValue = defaultIfNoValue;
 
     // Validation: at least one of NamedParameters or NamedCommands must be provided
     if (NamedParameters.Length == 0 && NamedCommands.Length == 0) {
@@ -1364,7 +1410,7 @@ internal class CliArgumentAttribute : Attribute
 /// Command line: myapp.exe -verbose *.txt file.dat Result: FilePatterns = ["*.txt", "file.dat"]
 /// </example>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
-internal class UnhandledArgumentsAttribute : Attribute
+public class UnhandledArgumentsAttribute : Attribute
 {
   public string Name { get; set; }
   public string Description { get; set; }

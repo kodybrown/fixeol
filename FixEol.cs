@@ -62,7 +62,7 @@ public class FixEol
     allowEnvar: true,
     description: "Pause when finished.",
     order: CliArgumentAttribute.DefaultGlobalOrder + 40,
-    defaultValue: false
+    defaultIfMissing: false
   )]
   public bool OptPause { get; set; } = false;
 
@@ -71,7 +71,7 @@ public class FixEol
     description: "Output additional details.",
     allowEnvar: true,
     order: CliArgumentAttribute.DefaultGlobalOrder + 50,
-    defaultValue: false
+    defaultIfMissing: false
   )]
   public bool OptVerbose { get; set; } = false;
 
@@ -85,7 +85,7 @@ public class FixEol
     namedParameter: "progress",
     allowEnvar: true,
     description: "Output per-file progress.",
-    defaultValue: false,
+    defaultIfMissing: false,
     order: 302
   )]
   public bool OptShowProgress { get; set; } = false;
@@ -97,7 +97,7 @@ public class FixEol
     namedParameters: ["recursive", "r", "s"],
     allowEnvar: true,
     description: "Apply the file-pattern(s) to the current and all sub-directories.",
-    defaultValue: false,
+    defaultIfMissing: false,
     order: 300
   )]
   public bool OptRecurse { get; set; } = false;
@@ -109,7 +109,7 @@ public class FixEol
     namedParameter: "backup",
     allowEnvar: true,
     description: "Create backup files of the changed files.",
-    defaultValue: false,
+    defaultIfMissing: false,
     order: 301
   )]
   public bool OptBackup { get; set; } = false;
@@ -123,7 +123,7 @@ public class FixEol
     allowEnvar: true,
     description: "Specify the EOL for the files.",
     allowedValues: ["os", "crlf", "cr", "lf", "\\r\\n", "\\r", "\\n"],
-    defaultValue: "os",
+    defaultIfMissing: "os",
     order: 100
   )]
   public string? OptEOL { get; set; } = null;
@@ -136,7 +136,7 @@ public class FixEol
     allowEnvar: true,
     description: "Specify the file encoding. The hyphen is optional (ie: 'utf-8' or 'utf8').",
     allowedValues: ["os", "ascii", "ansi", "utf32", "utf32bom", "utf7", "utf8", "utf8bom", "unicode", "windows1252", "win1252"],
-    defaultValue: "os",
+    defaultIfMissing: "os",
     order: 200
   )]
   public string? OptEncoding { get; set; } = null;

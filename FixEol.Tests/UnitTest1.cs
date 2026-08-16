@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Bricksoft.PowerCode;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -66,6 +67,30 @@ public class FixEolCliTests
     } finally {
       tempDirectory.Delete(true);
     }
+  }
+
+  [Fact]
+  public void BinderParsesFriendlyEnumNames()
+  {
+    var options = new EnumOptions();
+    var binder = new CliArgumentBinder(["--mode", "always"], "test");
+
+    var result = binder.ParseAndBind(options);
+
+    Assert.False(result.ShouldExit);
+    Assert.Equal(TestMode.TestModeAlways, options.Mode);
+  }
+
+  private enum TestMode
+  {
+    TestModeNever,
+    TestModeAlways,
+  }
+
+  private sealed class EnumOptions
+  {
+    [CliArgument(namedParameter: "mode")]
+    public TestMode Mode { get; set; }
   }
 
   private static CommandResult RunFixEol( params string[] arguments )
