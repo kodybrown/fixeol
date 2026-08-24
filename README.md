@@ -27,7 +27,11 @@ File patterns can be specific files, directories, or wildcards. Use `--recursive
 ## Options
 
 - `--eol [os|crlf|cr|lf|\r\n|\r|\n]` chooses the output line ending. The default is `os`.
-- `--encoding [os|ascii|ansi|utf32|utf32bom|utf7|utf8|utf8bom|unicode|windows1252|win1252]` chooses the output encoding. The default is `os`.
+- `--encoding` chooses the output encoding. Accepted values are `os`, `default`,
+  `ascii`, `ansi`, `utf32`, `utf-32`, `utf32bom`, `utf-32-bom`, `utf7`,
+  `utf-7`, `utf8`, `utf-8`, `utf8bom`, `utf-8-bom`, `unicode`, `utf16`,
+  `utf-16`, `windows1252`, `windows-1252`, `win1252`, and `win-1252`. The
+  default is `os`; hyphens are optional.
 - `--recursive`, `-r`, `-s` scans subdirectories.
 - `--exclude [pattern]` skips matching file names or paths. Repeat it for multiple excludes; excludes win over include patterns.
 - `--backup` keeps the original file as `.bak`.

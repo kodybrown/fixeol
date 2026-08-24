@@ -1,4 +1,4 @@
-namespace Bricksoft.fixeol;
+namespace FixEol;
 
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Bricksoft.PowerCode;
+using PowerCode;
 
 public class FixEol
 {
@@ -17,7 +17,6 @@ public class FixEol
   /// <returns></returns>
   public static int Main( string[] arguments )
   {
-    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
     var app = new FixEol();
     var cli = new CliArgumentBinder(arguments, "FixEol") {
@@ -41,21 +40,21 @@ public class FixEol
     valueIsOptional: true,
     order: CliArgumentAttribute.DefaultGlobalOrder
   )]
-  public bool OptHelp { get; set; } = false;
+  public bool Help { get; set; } = false;
 
   [CliArgument(
     namedParameter: "v",
     description: "Show the version.",
     order: CliArgumentAttribute.DefaultGlobalOrder + 10
   )]
-  public bool OptVersion { get; set; } = false;
+  public bool Version { get; set; } = false;
 
   [CliArgument(
     namedParameter: "version",
     description: "Show app info and version.",
     order: CliArgumentAttribute.DefaultGlobalOrder + 10
   )]
-  public bool OptVersionFull { get; set; } = false;
+  public bool VersionFull { get; set; } = false;
 
   [CliArgument(
     namedParameter: "pause",
@@ -64,7 +63,7 @@ public class FixEol
     order: CliArgumentAttribute.DefaultGlobalOrder + 40,
     defaultIfMissing: false
   )]
-  public bool OptPause { get; set; } = false;
+  public bool Pause { get; set; } = false;
 
   [CliArgument(
     namedParameter: "verbose",
@@ -73,7 +72,7 @@ public class FixEol
     order: CliArgumentAttribute.DefaultGlobalOrder + 50,
     defaultIfMissing: false
   )]
-  public bool OptVerbose { get; set; } = false;
+  public bool Verbose { get; set; } = false;
 
   // ===== App-Specific Options =====
 
@@ -88,7 +87,7 @@ public class FixEol
     defaultIfMissing: false,
     order: 302
   )]
-  public bool OptShowProgress { get; set; } = false;
+  public bool ShowProgress { get; set; } = false;
 
   /// <summary>
   /// Gets or sets whether to scan sub-directories.
@@ -100,7 +99,7 @@ public class FixEol
     defaultIfMissing: false,
     order: 300
   )]
-  public bool OptRecurse { get; set; } = false;
+  public bool Recurse { get; set; } = false;
 
   /// <summary>
   /// Gets or sets whether to backup the (changed) files.
@@ -112,7 +111,7 @@ public class FixEol
     defaultIfMissing: false,
     order: 301
   )]
-  public bool OptBackup { get; set; } = false;
+  public bool Backup { get; set; } = false;
 
   /// <summary>
   /// Gets or sets whether to correct line endings and also specifies what ending to use. Set to
@@ -126,20 +125,20 @@ public class FixEol
     defaultIfMissing: "os",
     order: 100
   )]
-  public string? OptEOL { get; set; } = null;
+  public string? EOL { get; set; } = null;
 
   /// <summary>
-  /// Gets or sets the encoding. If not specified, the source file encoding is used.
+  /// Gets or sets the output encoding. If not specified, the operating-system default is used.
   /// </summary>
   [CliArgument(
     namedParameter: "encoding",
     allowEnvar: true,
     description: "Specify the file encoding. The hyphen is optional (ie: 'utf-8' or 'utf8').",
-    allowedValues: ["os", "ascii", "ansi", "utf32", "utf32bom", "utf7", "utf8", "utf8bom", "unicode", "windows1252", "win1252"],
+    allowedValues: ["os", "default", "ascii", "ansi", "utf32", "utf-32", "utf32bom", "utf-32-bom", "utf7", "utf-7", "utf8", "utf-8", "utf8bom", "utf-8-bom", "unicode", "utf16", "utf-16", "windows1252", "windows-1252", "win1252", "win-1252"],
     defaultIfMissing: "os",
     order: 200
   )]
-  public string? OptEncoding { get; set; } = null;
+  public string? FileEncoding { get; set; } = null;
 
   /// <summary>
   /// Gets or sets file names or patterns to exclude from processing.
@@ -150,7 +149,7 @@ public class FixEol
     description: "Exclude files whose name or path matches this pattern. This supersedes any file(s) found by the include file-pattern(s).",
     order: 303
   )]
-  public string[] OptExcludePatterns { get; set; } = [];
+  public string[] ExcludePatterns { get; set; } = [];
 
   /// <summary>
   /// Gets or sets the file pattern(s) to process.
@@ -171,10 +170,10 @@ public class FixEol
     try {
       string NewLine;
 
-      if (OptEOL?.Equals("os", StringComparison.OrdinalIgnoreCase) == true || OptEOL?.Equals("default", StringComparison.OrdinalIgnoreCase) == true) {
+      if (EOL?.Equals("os", StringComparison.OrdinalIgnoreCase) == true || EOL?.Equals("default", StringComparison.OrdinalIgnoreCase) == true) {
         NewLine = Environment.NewLine;
-      } else if (!string.IsNullOrEmpty(OptEOL)) {
-        NewLine = OptEOL.Replace("cr", "\r")
+      } else if (!string.IsNullOrEmpty(EOL)) {
+        NewLine = EOL.Replace("cr", "\r")
                         .Replace("lf", "\n")
                         .Replace("\\r", "\r")
                         .Replace("\\n", "\n");
@@ -182,7 +181,7 @@ public class FixEol
           if (c is '\r' or '\n') {
             continue;
           } else {
-            Console.Out.WriteLine($"**** Invalid eol character found in `{OptEOL}`");
+            Console.Out.WriteLine($"**** Invalid eol character found in `{EOL}`");
             return 5;
           }
         }
@@ -192,19 +191,19 @@ public class FixEol
 
       // Get the encoding to write with.
       // If not specified, uses the operating system default encoding (Encoding.Default).
-      var writeEncoding = GetEncoding(OptEncoding);
+      var writeEncoding = EncodingHelper.ConvertEncoding(FileEncoding ?? "os");
 
-      var recurseOption = OptRecurse
+      var recurseOption = Recurse
         ? SearchOption.AllDirectories
         : SearchOption.TopDirectoryOnly;
 
       var files = new List<string>();
       var message = "Working: ";
-      var showProgress = OptVerbose || OptShowProgress;
+      var showProgress = Verbose || ShowProgress;
 
       // Remove empty or whitespace-only patterns
       FilePatterns = FilePatterns.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
-      var excludePatterns = OptExcludePatterns
+      var excludePatterns = ExcludePatterns
         .Where(p => !string.IsNullOrWhiteSpace(p))
         .Select(p => p.Trim())
         .ToArray();
@@ -245,7 +244,7 @@ public class FixEol
 
           try {
             var matchedFiles = Directory.GetFiles(directory, searchPattern, recurseOption);
-            if (matchedFiles.Length == 0 && OptVerbose) {
+            if (matchedFiles.Length == 0 && Verbose) {
               Console.Out.WriteLine("Warning: No files matched the pattern: {0}", pattern);
             }
             files.AddRange(matchedFiles);
@@ -262,7 +261,7 @@ public class FixEol
             // It's a directory - get all files within it
             try {
               var matchedFiles = Directory.GetFiles(pattern, "*", recurseOption);
-              if (matchedFiles.Length == 0 && OptVerbose) {
+              if (matchedFiles.Length == 0 && Verbose) {
                 Console.Out.WriteLine("Warning: No files found in directory: {0}", pattern);
               }
               files.AddRange(matchedFiles);
@@ -305,7 +304,7 @@ public class FixEol
         var curPos = 0.01F;
 
         //Console.CursorVisible = false;
-        if (OptVerbose) {
+        if (Verbose) {
           Console.WriteLine("Processing file: {0}", filename);
         }
         if (showProgress) {
@@ -331,7 +330,7 @@ public class FixEol
           // WE ALWAYS detect the source file encoding, even if the user specified an encoding to write with.
           var readEncoding = Encoding.Default;
           using (var detectStream = File.OpenRead(backupfile)) {
-            readEncoding = detectStream.DetectEncoding();
+            readEncoding = detectStream.DetectEncoding(Encoding.Default)!;
           }
 
           using var r = new StreamReader(backupfile, readEncoding);
@@ -364,7 +363,7 @@ public class FixEol
         }
 
         try {
-          if (OptBackup) {
+          if (Backup) {
             // TODO: old(er) backup files should not be deleted..
             if (File.Exists(filename + ".bak")) {
               File.SetAttributes(filename + ".bak", FileAttributes.Normal);
@@ -389,11 +388,11 @@ public class FixEol
         }
       }
 
-      if (OptVerbose) {
+      if (Verbose) {
         Console.Out.WriteLine();
       }
     } finally {
-      if (OptPause) {
+      if (Pause) {
         Console.Write("Press any key to exit: ");
         Console.ReadKey(true);
         Console.WriteLine();
@@ -475,42 +474,5 @@ public class FixEol
   private static StringComparer PathComparer
     => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-  private static Encoding GetEncoding( string? encoding )
-  {
-    switch ((encoding ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant()) {
-      case "ascii":
-        return Encoding.ASCII;
-      case "ansi":
-        // Always Windows-1252
-        return Encoding.GetEncoding(1252);
-      case "utf32":
-        // no BOM
-        return new UTF32Encoding(false, false);
-      case "utf32bom":
-        // with BOM
-        return new UTF32Encoding(false, true);
-      case "utf7":
-        // UTF-7 is obsolete but may be explicitly requested by users
-#pragma warning disable SYSLIB0001
-        return Encoding.UTF7;
-#pragma warning restore SYSLIB0001
-      case "utf8":
-        // UTF8 without BOM
-        return new UTF8Encoding(false);
-      case "utf8bom":
-        // UTF8 with BOM
-        return new UTF8Encoding(true);
-      case "unicode":
-        return Encoding.Unicode;
-      case "windows1252":
-      case "win1252":
-        // Western European
-        return Encoding.GetEncoding(1252);
-      case "os":
-      case "default":
-        return Encoding.Default;
-      default:
-        throw new Exception($"Invalid or unknown encoding specified '{encoding}'.");
-    }
-  }
+
 }

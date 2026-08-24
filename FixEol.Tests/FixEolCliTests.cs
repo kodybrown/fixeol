@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Bricksoft.PowerCode;
+using PowerCode;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
-namespace Bricksoft.fixeol.Tests;
+namespace FixEol.Tests;
 
 public class FixEolCliTests
 {
@@ -18,7 +18,7 @@ public class FixEolCliTests
     var result = RunFixEol("--help");
 
     Assert.True(result.ExitCode == 0, result.Output);
-    Assert.Contains("Usage:", result.Output);
+    Assert.Contains("USAGE:", result.Output);
     Assert.Contains("-exclude [string[]]", result.Output);
     Assert.Contains("(repeatable)", result.Output);
   }
@@ -36,6 +36,24 @@ public class FixEolCliTests
 
       Assert.True(result.ExitCode == 0, result.Output);
       Assert.Equal("alpha\nbeta\n", Encoding.ASCII.GetString(File.ReadAllBytes(filePath)));
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Fact]
+  public void HyphenatedUtf8EncodingOptionProcessesFile()
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var filePath = Path.Combine(tempDirectory.FullName, "sample.txt");
+      File.WriteAllText(filePath, "alpha\r\nbeta", new UTF8Encoding(false));
+
+      var result = RunFixEol("--encoding", "utf-8", "--eol", "lf", filePath);
+
+      Assert.True(result.ExitCode == 0, result.Output);
+      Assert.Equal("alpha\nbeta\n", Encoding.UTF8.GetString(File.ReadAllBytes(filePath)));
     } finally {
       tempDirectory.Delete(true);
     }

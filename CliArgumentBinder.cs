@@ -1,4 +1,28 @@
-namespace Bricksoft.PowerCode;
+/*!
+	Copyright (C) 2008-2026 Kody Brown (kody@bricksoft.com).
+
+	MIT License:
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to
+	deal in the Software without restriction, including without limitation the
+	rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+	sell copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in
+	all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+	FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+	DEALINGS IN THE SOFTWARE.
+*/
+
+namespace PowerCode;
 
 using System;
 using System.Collections.Generic;
@@ -10,151 +34,201 @@ using System.Reflection;
 /// <summary>
 /// Provides command-line argument parsing and binding functionality for applications.
 /// This class uses reflection to bind command-line arguments to properties decorated with
-/// NamedParameters, NamedCommands, and UnhandledArguments attributes.
+/// CliArgument and UnhandledArguments attributes.
 /// </summary>
 public class CliArgumentBinder
 {
-  private const int DefaultConsoleWidth = 80;
+  private const string UNKNOWN = "UNKNOWN";
 
-  public string AppName { get; set; } = string.Empty;
-  public string? AppVersion { get; set; } = null;
-  public string? AppEnvarPrefix { get; set; } = null;
-  public string? AppDescription { get; set; } = null;
-  public string? AppCopyright { get; set; } = null;
-  public string? AppCompany { get; set; } = null;
-  public string? AppProduct { get; set; } = null;
-  public string? AppAuthors { get; set; } = null;
-  public string? AppRepositoryUrl { get; set; } = null;
+  public Verbosity AppDebug { get; private set; } = Verbosity.None;
 
-  private readonly List<string> _arguments = [];
+  public string AppName {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get application name: prefer Title, Product, then assembly name.
+        var titleAttr = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
+        var productAttr = assembly.GetCustomAttribute<AssemblyProductAttribute>();
+        field = titleAttr?.Title
+             ?? productAttr?.Product
+             ?? assembly.GetName().Name
+             ?? UNKNOWN;
+      }
+      return field;
+    }
+    set => field = value;
+  }
 
-  /// <summary>
-  /// Initializes a new instance of the CliArgumentBinder class with the specified application name and
-  /// command-line arguments.
-  /// </summary>
-  /// <remarks>
-  /// The provided arguments are stored for later access and processing within the application. If
-  /// appName is not provided, the application name is read from the assembly's Product or Title
-  /// attribute. Version, description, copyright, and other metadata are automatically loaded from
-  /// assembly attributes.
-  /// </remarks>
-  /// <param name="args">
-  /// An array containing the command-line arguments to be processed by the application. Cannot be
-  /// null.
-  /// </param>
-  /// <param name="appName">
-  /// The name of the application to be used for display and identification purposes. If null or
-  /// empty, the name is read from the assembly's Product or Title attribute.
-  /// </param>
+  public string AppVersion {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get version: try InformationalVersion first (supports semver), then FileVersion, then AssemblyVersion
+        var infoVersionAttr = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        if (infoVersionAttr != null && !string.IsNullOrEmpty(infoVersionAttr.InformationalVersion)) {
+          field = infoVersionAttr.InformationalVersion;
+        } else {
+          // Try FileVersion (e.g., "1.2.3.4")
+          var fileVersionAttr = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
+          if (fileVersionAttr != null && !string.IsNullOrEmpty(fileVersionAttr.Version)) {
+            field = fileVersionAttr.Version;
+          } else {
+            // Fall back to AssemblyVersion
+            var version = assembly.GetName().Version;
+            if (version != null) {
+              field = version.ToString();
+            }
+          }
+        }
+      }
+      field ??= UNKNOWN;
+      return field;
+    }
+    set => field = value;
+  }
+
+  public bool AllowEnvarValues { get; set; } = false;
+
+  public string? AppEnvarPrefix {
+    get {
+      field ??= !string.IsNullOrWhiteSpace(AppName) && AppName != UNKNOWN
+        ? AppName.ToUpperInvariant().Replace(' ', '_').Replace('-', '_') + "_"
+        : null;
+      return AllowEnvarValues
+        ? field
+        : null;
+    }
+    set => field = value;
+  }
+
+  public string? AppDescription {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get description from assembly attribute
+        var descAttr = assembly.GetCustomAttribute<AssemblyDescriptionAttribute>();
+        if (descAttr != null && !string.IsNullOrEmpty(descAttr.Description)) {
+          AppDescription = descAttr.Description;
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  public string? AppCopyright {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get copyright from assembly attribute
+        var copyrightAttr = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
+        if (copyrightAttr != null && !string.IsNullOrEmpty(copyrightAttr.Copyright)) {
+          AppCopyright = copyrightAttr.Copyright;
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  public string? AppCompany {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get company from assembly attribute
+        var companyAttr = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
+        if (companyAttr != null && !string.IsNullOrEmpty(companyAttr.Company)) {
+          AppCompany = companyAttr.Company;
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  public string? AppProduct {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get product from assembly attribute
+        var productAttribute = assembly.GetCustomAttribute<AssemblyProductAttribute>();
+        if (productAttribute != null && !string.IsNullOrEmpty(productAttribute.Product)) {
+          AppProduct = productAttribute.Product;
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  public string? AppAuthors {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get repository URL from assembly metadata (common in .NET 5+)
+        var metadataAttrs = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+        foreach (var metadata in metadataAttrs) {
+          if (metadata.Key == "Authors" && !string.IsNullOrEmpty(metadata.Value)) {
+            AppAuthors = metadata.Value;
+            break;
+          }
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  public string? AppRepositoryUrl {
+    get {
+      if (field is null) {
+        // Get the assembly to read metadata from
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        // Get repository URL from assembly metadata (common in .NET 5+)
+        var metadataAttrs = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+        foreach (var metadata in metadataAttrs) {
+          if (metadata.Key == "RepositoryUrl" && !string.IsNullOrEmpty(metadata.Value)) {
+            AppRepositoryUrl = metadata.Value;
+            break;
+          }
+        }
+      }
+      return field;
+    }
+    set => field = value;
+  }
+
+  private readonly List<string> _arguments;
+
   public CliArgumentBinder( string[] args, string? appName = null )
   {
     _arguments = args?.ToList() ?? [];
-
-    // Get the assembly to read metadata from
-    var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
-
-    // Get application name - prefer parameter, then Product, then Title, then assembly name
     if (!string.IsNullOrWhiteSpace(appName)) {
       AppName = appName;
-    } else {
-      var titleAttr = assembly.GetCustomAttribute<AssemblyTitleAttribute>();
-      var productAttr = assembly.GetCustomAttribute<AssemblyProductAttribute>();
-      AppName = titleAttr?.Title
-             ?? productAttr?.Product
-             ?? assembly.GetName().Name
-             ?? "CliArgumentBinder";
-    }
-
-    // Get version - try InformationalVersion first (supports semver), then FileVersion, then AssemblyVersion
-    var infoVersionAttr = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-    if (infoVersionAttr != null && !string.IsNullOrEmpty(infoVersionAttr.InformationalVersion)) {
-      AppVersion = infoVersionAttr.InformationalVersion;
-    } else {
-      // Try FileVersion (e.g., "1.2.3.4")
-      var fileVersionAttr = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
-      if (fileVersionAttr != null && !string.IsNullOrEmpty(fileVersionAttr.Version)) {
-        AppVersion = fileVersionAttr.Version;
-      } else {
-        // Fall back to AssemblyVersion
-        var version = assembly.GetName().Version;
-        if (version != null) {
-          AppVersion = version.ToString();
-        }
-      }
-    }
-
-    // Get description from assembly attribute
-    var descAttr = assembly.GetCustomAttribute<AssemblyDescriptionAttribute>();
-    if (descAttr != null && !string.IsNullOrEmpty(descAttr.Description)) {
-      AppDescription = descAttr.Description;
-    }
-
-    // Get copyright from assembly attribute
-    var copyrightAttr = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
-    if (copyrightAttr != null && !string.IsNullOrEmpty(copyrightAttr.Copyright)) {
-      AppCopyright = copyrightAttr.Copyright;
-    }
-
-    // Get company from assembly attribute
-    var companyAttr = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
-    if (companyAttr != null && !string.IsNullOrEmpty(companyAttr.Company)) {
-      AppCompany = companyAttr.Company;
-    }
-
-    // Get product from assembly attribute
-    var productAttribute = assembly.GetCustomAttribute<AssemblyProductAttribute>();
-    if (productAttribute != null && !string.IsNullOrEmpty(productAttribute.Product)) {
-      AppProduct = productAttribute.Product;
-    }
-
-    // Get repository URL from assembly metadata (common in .NET 5+)
-    var metadataAttrs = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
-    foreach (var metadata in metadataAttrs) {
-      if (metadata.Key == "RepositoryUrl" && !string.IsNullOrEmpty(metadata.Value)) {
-        AppRepositoryUrl = metadata.Value;
-      } else if (metadata.Key == "Authors" && !string.IsNullOrEmpty(metadata.Value)) {
-        AppAuthors = metadata.Value;
-      }
     }
   }
 
-  private static (string arg, bool isFlag, bool flagValue) ParseArgument( string arg )
-  {
-    var isFlag = false;
-    var slashIsFlag = OperatingSystem.IsWindows();
-
-    while (arg.StartsWith('-') || (slashIsFlag && arg.StartsWith('/'))) {
-      isFlag = true;
-      arg = arg[1..];
-    }
-
-    var flagVal = true;
-    if (isFlag && arg.StartsWith('!')) {
-      flagVal = false;
-      arg = arg.TrimStart('!');
-    }
-    return (arg, isFlag, flagVal);
-  }
-
-  private static bool TryParseEnum( Type enumType, string value, out object? result )
-  {
-    if (Enum.TryParse(enumType, value, ignoreCase: true, out result)) {
-      return true;
-    }
-
-    return Enum.TryParse(enumType, enumType.Name + value, ignoreCase: true, out result);
-  }
+  /* PARSE METHODS */
 
   /// <summary>
   /// Parses command-line arguments and binds them to properties on the specified target object
-  /// decorated with NamedParameters, NamedCommands, and UnhandledArguments attributes.
+  /// decorated with CliArgument and UnhandledArguments attributes.
   /// </summary>
   /// <param name="target">The object whose properties will be populated with parsed values.</param>
-  /// <param name="allowEnvarValues">Whether to apply environment variable values before parsing command-line arguments.</param>
+  /// <param name="allowEnvars">Whether to apply environment variable values before parsing command-line arguments.</param>
   /// <returns>A ParseResult indicating whether the application should exit and with what code.</returns>
   public ParseResult ParseAndBind( object target, bool allowEnvarValues = false )
   {
     ArgumentNullException.ThrowIfNull(target);
+
+    AllowEnvarValues = allowEnvarValues;
 
     var exit_code = 0;
     var targetType = target.GetType();
@@ -177,7 +251,7 @@ public class CliArgumentBinder
     foreach (var paramProp in namedParameters) {
       var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
       if (attr?.DefaultIfMissing != null) {
-        // Check if the default value type matches the property type
+        // Check if the default-if-missing value type matches the property type
         if (paramProp.PropertyType == typeof(bool) && attr.DefaultIfMissing is bool boolDefault) {
           paramProp.SetValue(target, boolDefault);
         } else if (paramProp.PropertyType == typeof(int) && attr.DefaultIfMissing is int intDefault) {
@@ -191,16 +265,36 @@ public class CliArgumentBinder
             // Support single string that gets converted to array
             paramProp.SetValue(target, new[] { stringValue });
           }
+        } else if (paramProp.PropertyType.IsEnum && attr.DefaultIfMissing.GetType() == paramProp.PropertyType) {
+          // Enum default value (used only when option not specified)
+          paramProp.SetValue(target, attr.DefaultIfMissing);
         } else {
           // Try to set the value directly if types match
           var defaultType = attr.DefaultIfMissing.GetType();
           if (paramProp.PropertyType.IsAssignableFrom(defaultType)) {
             paramProp.SetValue(target, attr.DefaultIfMissing);
           } else {
-            Console.WriteLine($"Warning: Default value type mismatch for property {paramProp.Name}. Expected {paramProp.PropertyType.Name}, got {defaultType.Name}");
+            Console.WriteLine($"Warning: DefaultIfMissing type mismatch for property {paramProp.Name}. Expected {paramProp.PropertyType.Name}, got {defaultType.Name}");
           }
         }
       }
+    }
+
+    var explicitlySetProperties = new HashSet<PropertyInfo>();
+
+    void MarkWasSet( PropertyInfo paramProp )
+    {
+      explicitlySetProperties.Add(paramProp);
+      var wasSetProp = targetType.GetProperty($"{paramProp.Name}WasSet", bindingFlags);
+      if (wasSetProp is not null && wasSetProp.CanWrite && wasSetProp.PropertyType == typeof(bool)) {
+        wasSetProp.SetValue(target, true);
+      }
+    }
+
+    void SetExplicitValue( PropertyInfo paramProp, object? value )
+    {
+      paramProp.SetValue(target, value);
+      MarkWasSet(paramProp);
     }
 
     void SetValue( PropertyInfo? paramProp, string arg, bool is_flag, bool flag_val, ref int i )
@@ -210,7 +304,7 @@ public class CliArgumentBinder
         // Found a matching named parameter property.
         if (paramProp.PropertyType == typeof(bool)) {
           // Boolean flag
-          paramProp.SetValue(target, flag_val);
+          SetExplicitValue(paramProp, flag_val);
         } else if (paramProp.PropertyType == typeof(string)) {
           // String parameter
           var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
@@ -223,16 +317,16 @@ public class CliArgumentBinder
             // Validate against allowed values if specified
             if (attr?.AllowedValues != null && attr.AllowedValues.Length > 0) {
               if (!attr.AllowedValues.Any(av => av.Equals(value, StringComparison.InvariantCultureIgnoreCase))) {
-                Console.WriteLine($"Invalid value '{value}' for argument: {arg}");
-                Console.WriteLine($"Allowed values: {string.Join(", ", attr.AllowedValues)}");
+                Console.WriteLine($"Invalid value \"{value}\" for argument: {arg}");
+                Console.WriteLine($"Allowed values: \"{string.Join("\", \"", attr.AllowedValues)}\"");
                 exit_code = -104;
                 return;
               }
             }
-            paramProp.SetValue(target, value);
+            SetExplicitValue(paramProp, value);
           } else if (isOptional) {
             // Value is optional - set to empty string to indicate flag was present but no value provided
-            paramProp.SetValue(target, string.Empty);
+            SetExplicitValue(paramProp, string.Empty);
           } else {
             Console.WriteLine($"Missing string value for argument: {arg}");
             exit_code = -100;
@@ -241,7 +335,7 @@ public class CliArgumentBinder
           // Integer parameter
           i = GetSubArgument(_arguments, i, out var found, out var value);
           if (found && int.TryParse(value, out var intValue)) {
-            paramProp.SetValue(target, intValue);
+            SetExplicitValue(paramProp, intValue);
           } else {
             Console.WriteLine($"Invalid or missing integer value for argument: {arg}");
             exit_code = -101;
@@ -257,7 +351,7 @@ public class CliArgumentBinder
             if (ar is null) {
               // Create a new array.
               ar = [];
-              paramProp.SetValue(target, ar);
+              SetExplicitValue(paramProp, ar);
             }
 
             // Remove surrounding quotes if present.
@@ -270,7 +364,7 @@ public class CliArgumentBinder
               // Remove the value from the array.
               var toRemove = value[1..];
               ar = ar.Where(x => !x.Equals(toRemove, StringComparison.InvariantCultureIgnoreCase)).ToArray();
-              paramProp.SetValue(target, ar);
+              SetExplicitValue(paramProp, ar);
               return;
             }
 
@@ -283,30 +377,37 @@ public class CliArgumentBinder
             // Add value to the array.
             Array.Resize(ref ar, ar.Length + 1);
             ar[^1] = value!;
-            paramProp.SetValue(target, ar);
+            SetExplicitValue(paramProp, ar);
           } else {
             Console.WriteLine($"Missing string value for argument: {arg}");
             exit_code = -100;
           }
         } else if (paramProp.PropertyType.IsEnum) {
+          // Enum parameter
           var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
           var isOptional = attr?.ValueIsOptional ?? false;
+
           i = GetSubArgument(_arguments, i, out var found, out var value, ignoreFlagSymbols: !isOptional);
 
-          if (found && value != null && TryParseEnum(paramProp.PropertyType, value, out var enumValue)) {
-            paramProp.SetValue(target, enumValue);
-          } else if (!found && isOptional) {
+          if (found && value != null) {
+            // Try to parse the enum value
+            if (TryParseEnum(paramProp.PropertyType, value, out var enumValue)) {
+              SetExplicitValue(paramProp, enumValue);
+            } else {
+              Console.WriteLine($"Invalid value '{value}' for argument: {arg}");
+              Console.WriteLine($"Allowed values: {FormatAllowedValues(GetFriendlyEnumNames(paramProp.PropertyType))}");
+              exit_code = -104;
+            }
+          } else if (isOptional) {
+            // No value provided, use DefaultIfNoValue or first enum value
             var defaultValue = attr?.DefaultIfNoValue ?? Enum.GetValues(paramProp.PropertyType).GetValue(0);
-            paramProp.SetValue(target, defaultValue);
+            SetExplicitValue(paramProp, defaultValue);
           } else {
-            Console.WriteLine(found
-              ? $"Invalid value '{value}' for argument: {arg}"
-              : $"Missing value for argument: {arg}");
-            Console.WriteLine(FormatAllowedValues(Enum.GetNames(paramProp.PropertyType)));
-            exit_code = found ? -104 : -100;
+            Console.WriteLine($"Missing value for argument: {arg}");
+            exit_code = -100;
           }
         } else {
-          Console.WriteLine($"Unsupported parameter type for argument: {arg} (must be bool, int, string, string[], or enum)");
+          Console.WriteLine($"Unsupported parameter type for argument: {arg} (must be bool, int, string, or enum)");
           exit_code = -102;
         }
       }
@@ -319,40 +420,50 @@ public class CliArgumentBinder
     // environment variables as an alternative to command-line arguments, with command-line arguments
     // taking precedence if both are provided.
     //
-    if (allowEnvarValues) {
+    if (AllowEnvarValues) {
       foreach (var paramProp in namedParameters) {
         var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
         if (attr != null && attr.AllowEnvar && attr.NamedParameters.Length > 0) {
+          // Skip if this option was explicitly provided on the command line.
+          var wasOnCli = _arguments.Any(cliArg =>
+          {
+            var (parsed, isFlag, _) = ParseArgument(cliArg);
+            return isFlag && attr.NamedParameters.Any(
+              n => n.Equals(parsed, StringComparison.InvariantCultureIgnoreCase));
+          });
+          if (wasOnCli) {
+            continue;
+          }
+
           // Use first parameter name + prefix as the environment variable name
-          var envarName = $"{AppEnvarPrefix}{attr.NamedParameters[0]}";
+          var envarName = $"{AppEnvarPrefix}{attr.NamedParameters[0].Replace('-', '_')}";
           var envVal = Environment.GetEnvironmentVariable(envarName);
           if (!string.IsNullOrEmpty(envVal)) {
             // We have an environment variable value for this parameter.
             if (paramProp.PropertyType == typeof(bool)) {
-              var boolVal = envVal switch {
-                "true" or "t" or "yes" or "1" => true,
-                _ => false,
-              };
-              paramProp.SetValue(target, boolVal);
+              var lower = envVal.Trim().ToLowerInvariant();
+              var boolVal = lower is "true" or "t" or "yes" or "y" or "1";
+              SetExplicitValue(paramProp, boolVal);
             } else if (paramProp.PropertyType == typeof(int)) {
               if (int.TryParse(envVal, out var intVal)) {
-                paramProp.SetValue(target, intVal);
+                SetExplicitValue(paramProp, intVal);
               } else {
                 Console.WriteLine($"Invalid integer value for environment variable {envarName}: {envVal}");
               }
             } else if (paramProp.PropertyType == typeof(string)) {
-              paramProp.SetValue(target, envVal);
+              SetExplicitValue(paramProp, envVal);
             } else if (paramProp.PropertyType == typeof(string[])) {
               var ar = envVal.Split([';'], StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
                 .ToArray();
-              paramProp.SetValue(target, ar);
+              SetExplicitValue(paramProp, ar);
             } else if (paramProp.PropertyType.IsEnum) {
+              // Try to parse the enum value from environment variable
               if (TryParseEnum(paramProp.PropertyType, envVal, out var enumValue)) {
-                paramProp.SetValue(target, enumValue);
+                SetExplicitValue(paramProp, enumValue);
               } else {
                 Console.WriteLine($"Invalid enum value for environment variable {envarName}: {envVal}");
-                Console.WriteLine(FormatAllowedValues(Enum.GetNames(paramProp.PropertyType)));
+                Console.WriteLine($"Allowed values: {FormatAllowedValues(GetFriendlyEnumNames(paramProp.PropertyType))}");
               }
             } else {
               throw new Exception("Unsupported parameter type for environment variable property: " + paramProp.PropertyType.Name);
@@ -423,18 +534,20 @@ public class CliArgumentBinder
     }
 
     // Check the common flags by looking for properties on the target with specific names
-    var optHelpProp = targetType.GetProperty("OptHelp", bindingFlags);
-    var optHelpTopicProp = targetType.GetProperty("OptHelpTopic", bindingFlags);
-    var optVersionProp = targetType.GetProperty("OptVersion", bindingFlags);
-    var optVersionFullProp = targetType.GetProperty("OptVersionFull", bindingFlags);
-    var optShowEnvarsProp = targetType.GetProperty("OptShowEnvVars", bindingFlags);
-    var optPauseProp = targetType.GetProperty("OptPause", bindingFlags);
+    var optHelpProp = targetType.GetProperty("Help", bindingFlags);
+    var optHelpTopicProp = targetType.GetProperty("HelpTopic", bindingFlags);
+    var optVersionProp = targetType.GetProperty("Version", bindingFlags);
+    var optVersionFullProp = targetType.GetProperty("VersionFull", bindingFlags);
+    var optShowEnvarsProp = targetType.GetProperty("ShowEnvVars", bindingFlags);
+    var optShowAbout = targetType.GetProperty("About", bindingFlags);
+    var optPauseProp = targetType.GetProperty("Pause", bindingFlags);
 
     var shouldShowHelp = (optHelpProp?.GetValue(target) as bool?) == true;
     var helpTopic = optHelpTopicProp?.GetValue(target) as string;
     var shouldShowVersion = (optVersionProp?.GetValue(target) as bool?) == true;
     var shouldShowVersionFull = (optVersionFullProp?.GetValue(target) as bool?) == true;
     var shouldShowEnvars = (optShowEnvarsProp?.GetValue(target) as bool?) == true;
+    var shouldShowAbout = (optShowAbout?.GetValue(target) as bool?) == true;
     var shouldPause = (optPauseProp?.GetValue(target) as bool?) == true;
 
     // Check if help or error occurred
@@ -461,6 +574,28 @@ public class CliArgumentBinder
       return new ParseResult { ShouldExit = true, ExitCode = 0 };
     }
 
+    if (shouldShowAbout) {
+      ShowHeader(includeDescription: true, includeBuildInfo: true);
+      return new ParseResult { ShouldExit = true, ExitCode = 0 };
+    }
+
+    // Validate required named arguments after handling informational options such as help/version.
+    foreach (var paramProp in namedParameters) {
+      var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(paramProp, typeof(CliArgumentAttribute));
+      if (attr?.Required == true && !explicitlySetProperties.Contains(paramProp)) {
+        var argumentName = attr.NamedParameters.Length > 0
+          ? $"-{attr.NamedParameters[0]}"
+          : attr.NamedCommands[0];
+        Console.WriteLine();
+        Console.WriteLine($"**** ERROR: Missing required argument: {argumentName}");
+        if (!string.IsNullOrWhiteSpace(attr.Description)) {
+          Console.WriteLine($"  {attr.Description}");
+        }
+        ShowHelpSuggestion();
+        return new ParseResult { ShouldExit = true, ExitCode = -105 };
+      }
+    }
+
     // Validate required unhandled arguments
     if (everythingElseProp != null) {
       var unhandledAttr = (UnhandledArgumentsAttribute?)Attribute.GetCustomAttribute(everythingElseProp, typeof(UnhandledArgumentsAttribute));
@@ -471,8 +606,7 @@ public class CliArgumentBinder
           var value = everythingElseProp.GetValue(target) as string;
           isEmpty = string.IsNullOrWhiteSpace(value);
         } else if (everythingElseProp.PropertyType == typeof(List<string>)) {
-          var list = everythingElseProp.GetValue(target) as List<string>;
-          isEmpty = list == null || list.Count == 0;
+          isEmpty = everythingElseProp.GetValue(target) is not List<string> list || list.Count == 0;
         }
 
         if (isEmpty) {
@@ -490,16 +624,61 @@ public class CliArgumentBinder
     return new ParseResult { ShouldExit = exit_code != 0, ExitCode = exit_code };
   }
 
-  /// <summary>
-  /// Pauses execution and waits for user input before continuing.
-  /// </summary>
-  private static void PauseForUser()
+  private static (string arg, bool isFlag, bool flagValue) ParseArgument( string arg )
   {
-    Console.Write("Press any key to exit: ");
-    Console.ReadKey(true);
-    Console.CursorLeft = 0;
-    Console.Write("                       ");
-    Console.CursorLeft = 0;
+    var isFlag = false;
+    var slashIsFlag = OperatingSystem.IsWindows();
+
+    while (arg.StartsWith('-') || (slashIsFlag && arg.StartsWith('/'))) {
+      isFlag = true;
+      arg = arg[1..];
+    }
+
+    var flagVal = true;
+    if (isFlag && arg.StartsWith('!')) {
+      flagVal = false;
+      arg = arg.TrimStart('!');
+    }
+    return (arg, isFlag, flagVal);
+  }
+
+  /// <summary>
+  /// Attempts to parse a string value as an enum, supporting both exact enum names and friendly names.
+  /// </summary>
+  /// <param name="enumType">The enum type to parse.</param>
+  /// <param name="value">The string value to parse.</param>
+  /// <param name="result">The parsed enum value if successful.</param>
+  /// <returns>True if parsing was successful; otherwise, false.</returns>
+  private static bool TryParseEnum( Type enumType, string value, out object? result )
+  {
+    result = null;
+
+    // Try exact match first (case-insensitive)
+    if (Enum.TryParse(enumType, value, ignoreCase: true, out var exactMatch)) {
+      result = exactMatch;
+      return true;
+    }
+
+    // Try prepending enum type name for friendly names.
+    // e.g., "always" -> "PauseAlways" for a Pause enum.
+    var friendlyAttempt = enumType.Name + value;
+    if (Enum.TryParse(enumType, friendlyAttempt, ignoreCase: true, out var friendlyMatch)) {
+      result = friendlyMatch;
+      return true;
+    }
+
+    return false;
+  }
+
+  private static string[] GetFriendlyEnumNames( Type enumType )
+  {
+    var prefix = enumType.Name;
+    return Enum.GetNames(enumType)
+      .Select(name => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && name.Length > prefix.Length
+        ? name[prefix.Length..]
+        : name)
+      .Select(name => name.ToLowerInvariant())
+      .ToArray();
   }
 
   /// <summary>
@@ -528,7 +707,7 @@ public class CliArgumentBinder
   /// determining the next argument.
   /// </param>
   /// <returns>The updated index in the arguments list after processing.</returns>
-  protected static int GetSubArgument( List<string> arguments, int i, out bool found, out string? result, bool ignoreFlagSymbols = false )
+  public static int GetSubArgument( List<string> arguments, int i, out bool found, out string? result, bool ignoreFlagSymbols = false )
   {
     ArgumentNullException.ThrowIfNull(arguments);
 
@@ -596,7 +775,7 @@ public class CliArgumentBinder
   /// Thrown if the specified type parameter <typeparamref name="T"/> is not supported for
   /// conversion.
   /// </exception>
-  protected static int GetSubArgument<T>( List<string> arguments, int index, out bool found, out T? result, bool ignoreFlagSymbols = false )
+  public static int GetSubArgument<T>( List<string> arguments, int index, out bool found, out T? result, bool ignoreFlagSymbols = false )
   {
     if (arguments is null || arguments.Count == 0) {
       throw new ArgumentNullException(nameof(arguments));
@@ -606,7 +785,7 @@ public class CliArgumentBinder
 
     if (index < arguments.Count - 1) {
       if (ignoreFlagSymbols || (!arguments[index + 1].StartsWith('-')
-                             && !arguments[index + 1].StartsWith('/'))) {
+                   && !arguments[index + 1].StartsWith('/'))) {
         subItem = arguments[index + 1];
       }
     }
@@ -731,7 +910,7 @@ public class CliArgumentBinder
   /// stops at the first flag symbol.
   /// </param>
   /// <returns>The index in the arguments list after processing the sub-arguments.</returns>
-  protected static int GetSubArguments( List<string> arguments, int i, out bool found, List<string> items, bool ignoreFlagSymbols = false )
+  public static int GetSubArguments( List<string> arguments, int i, out bool found, List<string> items, bool ignoreFlagSymbols = false )
   {
     ArgumentNullException.ThrowIfNull(arguments);
     ArgumentNullException.ThrowIfNull(items);
@@ -788,7 +967,7 @@ public class CliArgumentBinder
   /// processing arguments. Defaults to false.
   /// </param>
   /// <returns>The index of the last processed argument in the list.</returns>
-  protected static int GetSubArguments<T>( List<string> arguments, int i, out bool found, List<T> items, bool ignoreFlagSymbols = false )
+  public static int GetSubArguments<T>( List<string> arguments, int i, out bool found, List<T> items, bool ignoreFlagSymbols = false )
   {
     ArgumentNullException.ThrowIfNull(arguments);
     ArgumentNullException.ThrowIfNull(items);
@@ -817,6 +996,20 @@ public class CliArgumentBinder
     return i;
   }
 
+  /* USER METHODS */
+
+  /// <summary>
+  /// Pauses execution and waits for user input before continuing.
+  /// </summary>
+  private static void PauseForUser()
+  {
+    Console.Write("Press any key to exit: ");
+    Console.ReadKey(true);
+    Console.CursorLeft = 0;
+    Console.Write("                       ");
+    Console.CursorLeft = 0;
+  }
+
   /// <summary>
   /// Displays application header information, including version, description, and copyright
   /// details, to the console.
@@ -826,7 +1019,7 @@ public class CliArgumentBinder
   /// functionality. It can be used to provide users with basic application details at startup or
   /// upon request.
   /// </remarks>
-  protected void ShowHeader( bool includeExtraInfo = false )
+  public void ShowHeader( bool includeDescription = false, bool includeBuildInfo = false )
   {
     // Extract shortened version (major.minor only) from full version
     var shortVersion = AppVersion;
@@ -840,20 +1033,32 @@ public class CliArgumentBinder
     }
 
     // First line: AppName + short version
-    Console.Out.WriteLine($"{AppName} v{shortVersion}");
+    var title = $"{AppName} v{shortVersion}";
+    var separatorLine = ""; //new string('-', 79); //title.Length
+
+    Console.Out.WriteLine(title);
 
     // Copyright
     if (!string.IsNullOrEmpty(AppCopyright)) {
       Console.Out.WriteLine(AppCopyright);
     }
 
-    // Description
-    if (!string.IsNullOrEmpty(AppDescription)) {
-      Console.Out.WriteLine(AppDescription);
+    Console.Out.WriteLine(separatorLine);
+
+    if (includeDescription) {
+      // Description
+      if (!string.IsNullOrEmpty(AppDescription)) {
+        Console.Out.WriteLine(AppDescription);
+      }
+
+      Console.Out.WriteLine(separatorLine);
     }
 
-    if (includeExtraInfo) {
-      Console.Out.WriteLine();
+    if (includeBuildInfo) {
+      // Full version
+      if (!string.IsNullOrEmpty(AppVersion)) {
+        Console.Out.WriteLine($"build:   {AppVersion}");
+      }
 
       // Authors
       if (!string.IsNullOrEmpty(AppAuthors)) {
@@ -865,10 +1070,7 @@ public class CliArgumentBinder
         Console.Out.WriteLine($"url:     {AppRepositoryUrl}");
       }
 
-      // Second line: Full version with 'v' prefix
-      if (!string.IsNullOrEmpty(AppVersion)) {
-        Console.Out.WriteLine($"build:   v{AppVersion}");
-      }
+      Console.Out.WriteLine(separatorLine);
     }
   }
 
@@ -879,7 +1081,7 @@ public class CliArgumentBinder
   public void ShowVersion( bool full = false )
   {
     if (full) {
-      ShowHeader(true);
+      ShowHeader(includeDescription: false, includeBuildInfo: true);
     } else {
       Console.WriteLine($"{AppName} v{AppVersion}");
     }
@@ -888,9 +1090,9 @@ public class CliArgumentBinder
   /// <summary>
   /// Shows help information for a specific topic or general help if no topic is provided.
   /// </summary>
-  protected void ShowHelpSuggestion()
+  public void ShowHelpSuggestion()
   {
-    Console.Out.WriteLine();
+    //Console.Out.WriteLine();
     Console.Out.WriteLine($"type '{AppName}.exe /?' for help");
   }
 
@@ -899,8 +1101,7 @@ public class CliArgumentBinder
     ArgumentNullException.ThrowIfNull(target);
     var targetType = target.GetType();
 
-    ShowHeader(true);
-    Console.Out.WriteLine();
+    ShowHeader(includeDescription: true, includeBuildInfo: false);
 
     // Determine console width (minimum 80 characters)
     var consoleWidth = GetConsoleWidth();
@@ -914,19 +1115,23 @@ public class CliArgumentBinder
     var unhandledProp = targetType.GetProperties(bindingFlags)
       .FirstOrDefault(p => Attribute.IsDefined(p, typeof(UnhandledArgumentsAttribute)));
 
-    // Find all CliArgument properties
+    // Find all CliArgument properties (only those with ShowInHelp=true)
     var namedParams = targetType.GetProperties(bindingFlags)
       .Where(p => Attribute.IsDefined(p, typeof(CliArgumentAttribute)))
       .Select(p => new {
         Property = p,
         Attribute = (CliArgumentAttribute)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute))!
       })
+      .Where(x => x.Attribute.ShowInHelp)
       .OrderBy(x => x.Attribute.Order)
       .ThenBy(x => x.Attribute.NamedParameters.Length > 0 ? x.Attribute.NamedParameters[0] : x.Attribute.NamedCommands[0])
       .ToList();
 
     // Calculate optimal column width based on longest option name
-    var maxOptionNameLength = namedParams.Max(x => FormatOptionNames(x.Attribute.NamedParameters, x.Property.PropertyType).Length);
+    var maxOptionNameLength = namedParams
+      .Select(x => FormatOptionNames(x.Attribute, x.Property.PropertyType).Length)
+      .DefaultIfEmpty(minColWidth - 4)
+      .Max();
     var colWidth = Math.Clamp(maxOptionNameLength + 4, minColWidth, maxColWidth);
 
     // Check if any options allow environment variables
@@ -937,7 +1142,8 @@ public class CliArgumentBinder
       x.Property.PropertyType == typeof(bool) && x.Attribute.AllowEnvar);
 
     // ===== USAGE LINE =====
-    Console.Out.WriteLine("Usage:");
+    Console.Out.WriteLine("USAGE:");
+    Console.Out.WriteLine("------");
     Console.Out.WriteLine();
 
     var usageLine = $"> {AppName} [options]";
@@ -993,24 +1199,27 @@ public class CliArgumentBinder
         lastOrderGroup = currentOrderGroup;
 
         // Format option names
-        var optionNames = FormatOptionNames(attr.NamedParameters, propType);
+        var optionNames = FormatOptionNames(attr, propType);
 
         // Build description
         var description = attr.Description ?? string.Empty;
 
         // Add default value indicator
-        if (attr.DefaultIfMissing != null) {
+        if (attr.DefaultIfMissing != null) { //|| (attr.ValueIsOptional && attr.DefaultIfNoValue != null)) {
           var defaultValueStr = attr.DefaultIfMissing switch {
-            bool b => b.ToString().ToLowerInvariant(),
+            bool x => x.ToString().ToLowerInvariant(),
+            string => "'" + attr.DefaultIfMissing.ToString() + "'",
             _ => attr.DefaultIfMissing.ToString()
           };
           description += $" (default:{defaultValueStr})";
-        } else if (propType == typeof(string[])) {
-          description += " (repeatable)";
-        } else if (attr.ValueIsOptional || propType == typeof(bool)) {
-          description += " (optional)";
-        } else {
+        } else if (attr.Required) {
           description += " (required)";
+        } else {
+          description += " (optional)";
+        }
+
+        if (propType == typeof(string[])) {
+          description += " (repeatable)";
         }
 
         // Format and wrap description
@@ -1031,7 +1240,9 @@ public class CliArgumentBinder
           var wrappedAllowed = WrapText(allowedText, consoleWidth - colWidth, colWidth);
           Console.Out.WriteLine($"  {new string(' ', colWidth - 2)}{wrappedAllowed}");
         } else if (propType.IsEnum) {
-          var allowedText = FormatAllowedValues(Enum.GetNames(propType).Select(x => x.ToLowerInvariant()).ToArray());
+          // Auto-show enum values if no explicit AllowedValues specified
+          var enumValues = GetFriendlyEnumNames(propType);
+          var allowedText = FormatAllowedValues(enumValues);
           var wrappedAllowed = WrapText(allowedText, consoleWidth - colWidth, colWidth);
           Console.Out.WriteLine($"  {new string(' ', colWidth - 2)}{wrappedAllowed}");
         }
@@ -1044,18 +1255,16 @@ public class CliArgumentBinder
     // Show prefix note
     Console.Out.WriteLine("Notes:");
     Console.Out.WriteLine();
-    Console.Out.WriteLine("- Option prefixes can be -, --, or / (e.g., -help, --help, or /help).");
-    Console.Out.WriteLine("- Options cannot be chained (e.g., -abc is not allowed; use -a -b -c).");
+    Console.Out.WriteLine("- Option prefixes can be \"-\", \"--\", or \"/\" (e.g., \"-help\", \"--help\", or \"/help\").");
+    Console.Out.WriteLine("- Options cannot be chained (e.g., \"-abc\" is not allowed; use \"-a\" \"-b\" \"-c\").");
 
     // Show ! override note only if there are boolean options with envars
     if (hasBoolEnvarOptions) {
-      var line = WrapText("- Use '!' to set any boolean option to opposite value. This overrides environment variables.", consoleWidth - 2, 2);
-      Console.Out.WriteLine($"{line}");
-      line = WrapText("- For example, use '-!verbose' to disable verbose mode (useful to override envars).", consoleWidth - 2, 2);
+      var line = WrapText("- Use \"!\" to set any boolean option to opposite value. This is useful to override envars.\nFor example, use \"-!verbose\" to disable verbose mode (useful to override envars).", consoleWidth - 2, 2);
       Console.Out.WriteLine($"{line}");
     }
 
-    // Show environment variables section only if there are options with envars
+    // Show environment variables whenever options support them.
     if (hasEnvarOptions) {
       ShowCurrentEnvars(target, showHeader: false);
     }
@@ -1064,10 +1273,13 @@ public class CliArgumentBinder
   /// <summary>
   /// Formats option names with appropriate value type indicators.
   /// </summary>
-  private static string FormatOptionNames( string[] names, Type propertyType )
+  private static string FormatOptionNames( CliArgumentAttribute attribute, Type propertyType )
   {
-    var formattedNames = string.Join(" -", names.Select(n => n));
-    formattedNames = "-" + formattedNames;
+    var formattedNames = string.Join(
+      " ",
+      attribute.NamedParameters.Select(name => $"-{name}")
+        .Concat(attribute.NamedCommands)
+    );
 
     // Add value type indicator based on property type
     if (propertyType == typeof(bool)) {
@@ -1076,11 +1288,11 @@ public class CliArgumentBinder
     } else if (propertyType == typeof(string)) {
       return $"{formattedNames} [string]";
     } else if (propertyType == typeof(int) || propertyType == typeof(long) ||
-               propertyType == typeof(short) || propertyType == typeof(uint) ||
-               propertyType == typeof(ulong) || propertyType == typeof(ushort)) {
+           propertyType == typeof(short) || propertyType == typeof(uint) ||
+           propertyType == typeof(ulong) || propertyType == typeof(ushort)) {
       return $"{formattedNames} [number]";
     } else if (propertyType == typeof(float) || propertyType == typeof(double) ||
-               propertyType == typeof(decimal)) {
+           propertyType == typeof(decimal)) {
       return $"{formattedNames} [decimal]";
     } else if (propertyType == typeof(DateTime)) {
       return $"{formattedNames} [date]";
@@ -1105,15 +1317,15 @@ public class CliArgumentBinder
     }
 
     if (allowedValues.Length == 1) {
-      return $"Allowed values: {allowedValues[0]}";
+      return $"Allowed values: \"{allowedValues[0]}\"";
     }
 
     if (allowedValues.Length == 2) {
-      return $"Allowed values: {allowedValues[0]} or {allowedValues[1]}";
+      return $"Allowed values: \"{allowedValues[0]}\" or \"{allowedValues[1]}\"";
     }
 
-    var values = string.Join(", ", allowedValues.Take(allowedValues.Length - 1));
-    return $"Allowed values: {values}, or {allowedValues[^1]}";
+    var values = string.Join("\", \"", allowedValues.Take(allowedValues.Length - 1));
+    return $"Allowed values: \"{values}\", or \"{allowedValues[^1]}\"";
   }
 
   /// <summary>
@@ -1194,25 +1406,6 @@ public class CliArgumentBinder
     ArgumentNullException.ThrowIfNull(target);
     var targetType = target.GetType();
 
-    if (showHeader) {
-      ShowHeader(false);
-    }
-
-    var consoleWidth = GetConsoleWidth();
-    var minColWidth = 10;
-    var maxColWidth = 40;
-
-    Console.Out.WriteLine();
-    Console.Out.WriteLine("Environment Variables: ");
-    Console.Out.WriteLine();
-
-    var line = WrapText("The following envars can be set in the system or user environment to configure the application without using command-line arguments.", consoleWidth, 0);
-    Console.Out.WriteLine($"{line}");
-    line = WrapText("If both an environment variable and a command-line argument are provided for the same option, the command-line argument takes precedence.", consoleWidth, 0);
-    Console.Out.WriteLine($"{line}");
-
-    Console.Out.WriteLine();
-
     // Find all properties with CliArgument attribute where AllowEnvar == true
     var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     var propertiesWithEnvar = targetType.GetProperties(bindingFlags)
@@ -1223,13 +1416,38 @@ public class CliArgumentBinder
       })
       .ToList();
 
+    if (propertiesWithEnvar.Count == 0) {
+      // No command-line arguments found that allow an environment variable, so skip this section.
+      Console.Out.WriteLine("<none>");
+      return;
+    }
+
+    if (showHeader) {
+      ShowHeader(includeDescription: false, includeBuildInfo: false);
+    }
+
+    var consoleWidth = GetConsoleWidth();
+    var minColWidth = 10;
+    var maxColWidth = 40;
+
+    Console.Out.WriteLine("ENVIRONMENT VARIABLES:");
+    Console.Out.WriteLine("----------------------");
+    Console.Out.WriteLine();
+
+    var line = WrapText("The following envars can be set in the system or user environment to configure the application without using command-line arguments.", consoleWidth, 0);
+    Console.Out.WriteLine($"{line}");
+    line = WrapText("If both an environment variable and a command-line argument are provided for the same option, the command-line argument takes precedence.", consoleWidth, 0);
+    Console.Out.WriteLine($"{line}");
+
+    Console.Out.WriteLine();
+
     // Calculate optimal column width based on longest environment variable name
     var maxEnvarNameLength = propertiesWithEnvar
       .Select(p =>
       {
         var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(p, typeof(CliArgumentAttribute));
         if (attr != null && attr.NamedParameters.Length > 0) {
-          var envarName = attr.NamedParameters[0];
+          var envarName = attr.NamedParameters[0].Replace('-', '_');
           if (AppEnvarPrefix is not null) {
             envarName = $"{AppEnvarPrefix}{envarName}";
           }
@@ -1241,27 +1459,25 @@ public class CliArgumentBinder
       .Max();
     var colWidth = Math.Clamp(maxEnvarNameLength, minColWidth, maxColWidth);
 
-    if (propertiesWithEnvar.Count == 0) {
-      Console.Out.WriteLine("  <none found>");
-    } else {
-      foreach (var prop in propertiesWithEnvar) {
-        var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(prop, typeof(CliArgumentAttribute));
-        if (attr != null && attr.NamedParameters.Length > 0) {
-          // Use the first parameter name + AppEnvarPrefix as the environment variable name
-          var envarName = attr.NamedParameters[0];
-          if (AppEnvarPrefix is not null) {
-            envarName = $"{AppEnvarPrefix}{envarName}";
-          }
-          var envValue = Environment.GetEnvironmentVariable(envarName);
-
-          if (string.IsNullOrEmpty(envValue)) {
-            envValue = "<notset>";
-          }
-
-          line = WrapText(envValue, consoleWidth - colWidth, colWidth);
-          var pad = new string(' ', Math.Max(0, colWidth - envarName.Length));
-          Console.Out.WriteLine($"   {envarName}{pad}= {line}");
+    foreach (var prop in propertiesWithEnvar) {
+      var attr = (CliArgumentAttribute?)Attribute.GetCustomAttribute(prop, typeof(CliArgumentAttribute));
+      if (attr != null && attr.NamedParameters.Length > 0) {
+        // Use the first parameter name + AppEnvarPrefix as the environment variable name
+        var envarName = attr.NamedParameters[0].Replace('-', '_');
+        if (AppEnvarPrefix is not null) {
+          envarName = $"{AppEnvarPrefix}{envarName}";
         }
+
+        var envValue = Environment.GetEnvironmentVariable(envarName);
+        if (string.IsNullOrEmpty(envValue)) {
+          envValue = "<notset>";
+        } else if (envValue.Equals("True") || envValue.Equals("False")) {
+          envValue = envValue.ToLowerInvariant();
+        }
+
+        line = WrapText(envValue, consoleWidth - colWidth, colWidth);
+        var pad = new string(' ', Math.Max(0, colWidth - envarName.Length));
+        Console.Out.WriteLine($"   {envarName}{pad}= {line}");
       }
     }
 
@@ -1272,14 +1488,14 @@ public class CliArgumentBinder
   {
     try {
       if (Console.IsOutputRedirected) {
-        return DefaultConsoleWidth;
+        return 80;
       }
 
-      return Math.Max(DefaultConsoleWidth, Console.WindowWidth);
+      return Math.Max(80, Console.WindowWidth);
     } catch (IOException) {
-      return DefaultConsoleWidth;
+      return 80;
     } catch (InvalidOperationException) {
-      return DefaultConsoleWidth;
+      return 80;
     }
   }
 }
@@ -1328,8 +1544,7 @@ public class CliArgumentAttribute : Attribute
 
   /// <summary>
   /// Indicates whether the value for this option is optional. If true, the option can be used
-  /// as a flag without a value (e.g. --verbose), in which case the property will be set to an
-  /// empty string to indicate that the flag was present but no value was provided.
+  /// as a flag without a value (e.g. --verbose vs. --verbose true).
   /// </summary>
   public bool ValueIsOptional { get; }
 
@@ -1345,14 +1560,14 @@ public class CliArgumentAttribute : Attribute
   public string[]? AllowedValues { get; }
 
   /// <summary>
-  /// Default value for this option. Applied before environment variables and command-line arguments.
+  /// Value to apply when the option is NOT specified on the command line or via envar.
   /// </summary>
-  public object? DefaultIfMissing { get; } = null;
+  public object? DefaultIfMissing { get; } = default;
 
   /// <summary>
-  /// Value applied when an optional-valued argument is present without a value.
+  /// Value to apply when the option IS specified but no value is provided (for ValueIsOptional scenarios).
   /// </summary>
-  public object? DefaultIfNoValue { get; } = null;
+  public object? DefaultIfNoValue { get; } = default;
 
   /// <summary>
   /// Display order in usage output. Options with lower Order values are displayed first.
@@ -1360,7 +1575,40 @@ public class CliArgumentAttribute : Attribute
   /// </summary>
   public int Order { get; } = DefaultPropertyOrder;
 
-  // Full constructor with all parameters
+  /// <summary>
+  /// Indicates whether the property is required.
+  /// </summary>
+  public bool Required { get; set; } = false;
+
+  /// <summary>
+  /// Indicates whether this option should be shown in help/usage output. This allows for "hidden"
+  /// options that are not displayed in the help text but can still be used.
+  /// </summary>
+  public bool ShowInHelp { get; } = true;
+
+  /// <summary>
+  /// Initializes a new instance of the CliArgumentAttribute class with the specified argument
+  /// and command names, options, and metadata.
+  /// </summary>
+  /// <remarks>
+  /// At least one argument or command name must be provided via namedParameter, namedParameters,
+  /// namedCommand, or namedCommands. This constructor allows fine-grained control over
+  /// argument metadata, including help text, allowed values, and default behaviors.
+  /// </remarks>
+  /// <param name="namedParameter">The primary name of the argument as it appears in the command line. Can be null if namedParameters is specified.</param>
+  /// <param name="namedParameters">An array of alternative names for the argument. At least one of namedParameters or namedParameter must be provided.</param>
+  /// <param name="namedCommand">The primary command name associated with this argument. Can be null if namedCommands is specified.</param>
+  /// <param name="namedCommands">An array of alternative command names associated with this argument. At least one of namedCommands or namedCommand must be provided.</param>
+  /// <param name="allowEnvar">true to allow the argument value to be set from an environment variable; otherwise, false.</param>
+  /// <param name="description">A description of the argument for help text or documentation purposes. Can be null.</param>
+  /// <param name="allowedValues">An array of allowed values for the argument. If specified, the argument value must match one of these values.</param>
+  /// <param name="order">The order in which the argument appears in help text or processing. Use DefaultPropertyOrder for the default order.</param>
+  /// <param name="required">true if the argument must be supplied on the command line or through an allowed environment variable; otherwise, false.</param>
+  /// <param name="showInHelp">true to include the argument in generated help output; otherwise, false.</param>
+  /// <param name="defaultIfMissing">The value to use if the argument is missing.</param>
+  /// <param name="valueIsOptional">true if the argument value is optional; otherwise, false.</param>
+  /// <param name="defaultIfNoValue">The value to use if the argument is present but no value is provided. Can be null.</param>
+  /// <exception cref="ArgumentException">Thrown if neither namedParameters nor namedCommands (or their singular equivalents) are specified.</exception>
   public CliArgumentAttribute(
     string? namedParameter = null,
     string[]? namedParameters = null,
@@ -1371,24 +1619,28 @@ public class CliArgumentAttribute : Attribute
     string? description = null,
     string[]? allowedValues = null,
     int order = DefaultPropertyOrder,
-    object? defaultIfMissing = null,
-    object? defaultIfNoValue = null )
+    bool required = false,
+    bool showInHelp = true,
+    object? defaultIfMissing = default,
+    object? defaultIfNoValue = default )
   {
     NamedParameters = namedParameters is not null && namedParameters.Length > 0
       ? namedParameters
       : !string.IsNullOrEmpty(namedParameter)
-        ? [namedParameter]
-        : [];
+      ? [namedParameter]
+      : [];
     NamedCommands = namedCommands is not null && namedCommands.Length > 0
       ? namedCommands
       : !string.IsNullOrEmpty(namedCommand)
-        ? [namedCommand]
-        : [];
+      ? [namedCommand]
+      : [];
     AllowEnvar = allowEnvar;
     ValueIsOptional = valueIsOptional;
     Description = description;
     AllowedValues = allowedValues;
     Order = order;
+    Required = required;
+    ShowInHelp = showInHelp;
     DefaultIfMissing = defaultIfMissing;
     DefaultIfNoValue = defaultIfNoValue;
 
@@ -1438,4 +1690,18 @@ public record ParseResult
   /// The exit code to return if the application should exit.
   /// </summary>
   public int ExitCode { get; init; }
+}
+
+public enum Pause
+{
+  Never = 0,
+  Always = 1,
+  IfError = 2,
+}
+
+public enum Verbosity
+{
+  None = 0,
+  Verbose,
+  Debug
 }

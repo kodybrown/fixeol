@@ -10,6 +10,7 @@
 publish/
 **/*.bak
 **/*.original
+**/*.backup-*
 
 # System files
 **/.DS_Store

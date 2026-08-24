@@ -7,7 +7,7 @@
     <AssemblyName>FixEol</AssemblyName>
     <AssemblyTitle>FixEol</AssemblyTitle>
     <Product>Bricksoft.PowerTools</Product>
-    <RootNamespace>Bricksoft.fixeol</RootNamespace>
+    <RootNamespace>FixEol</RootNamespace>
     <Description>Fixes the EOL (end of line) characters in files.</Description>
     <Company></Company>
     <Copyright>Copyright (c) 2003-2026 Kody Brown</Copyright>
