@@ -18,7 +18,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FixEol.csproj" />
+    <ProjectReference Include="..\fixeol.csproj" />
   </ItemGroup>
 
 

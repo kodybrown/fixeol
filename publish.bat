@@ -1,6 +1,6 @@
 @echo off
 
-set "AppName=FixEol"
+set "AppName=fixeol"
 set "Configuration=Release"
 set "Runtime=win-x64"
 

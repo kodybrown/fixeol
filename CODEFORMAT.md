@@ -33,7 +33,7 @@ This is just the most important parts.
 ## Code Generation Best Practices
 
 - Follow patterns in existing code.
-- Put production code in the app project and CLI behavior coverage in FixEol.Tests.
+- Put production code in the app project and CLI behavior coverage in fixeol.tests.
 - Avoid hardcoding; use configuration options.
 - Test generated code with unit tests and CLI smoke tests.
 - Update README/help docs for user-facing CLI changes.

@@ -19,10 +19,10 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore FixEol.slnx
+        run: dotnet restore fixeol.slnx
 
       - name: Build
-        run: dotnet build FixEol.slnx --configuration Release --no-restore
+        run: dotnet build fixeol.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test FixEol.slnx --configuration Release --no-build --verbosity normal
+        run: dotnet test fixeol.slnx --configuration Release --no-build --verbosity normal

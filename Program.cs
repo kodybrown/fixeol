@@ -1,4 +1,4 @@
-namespace FixEol;
+namespace fixeol;
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using PowerCode;
 
-public class FixEol
+public class Program
 {
   /// <summary>
   /// Main entry point.
@@ -18,8 +18,8 @@ public class FixEol
   public static int Main( string[] arguments )
   {
 
-    var app = new FixEol();
-    var cli = new CliArgumentBinder(arguments, "FixEol") {
+    var app = new Program();
+    var cli = new CliArgumentBinder(arguments, "fixeol") {
       AppEnvarPrefix = "fixeol_"
     };
 
@@ -75,6 +75,14 @@ public class FixEol
   public bool Verbose { get; set; } = false;
 
   // ===== App-Specific Options =====
+
+  [CliArgument(
+    namedParameter: "dry-run",
+    description: "List files whose contents would change without modifying any files.",
+    defaultIfMissing: false,
+    order: 304
+  )]
+  public bool DryRun { get; set; } = false;
 
   /// <summary>
   /// Shows additional details during processing, such as the file being processed and progress
@@ -199,7 +207,7 @@ public class FixEol
 
       var files = new List<string>();
       var message = "Working: ";
-      var showProgress = Verbose || ShowProgress;
+      var showProgress = !DryRun && (Verbose || ShowProgress);
 
       // Remove empty or whitespace-only patterns
       FilePatterns = FilePatterns.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
@@ -238,13 +246,13 @@ public class FixEol
           if (!Directory.Exists(directory)) {
             Console.Out.WriteLine("**** The directory was not found: {0}", Path.GetFullPath(directory));
             Console.Out.WriteLine();
-            Console.Out.WriteLine("Type 'FixEol --help' for usage information.");
+            Console.Out.WriteLine("Type 'fixeol --help' for usage information.");
             return 1;
           }
 
           try {
             var matchedFiles = Directory.GetFiles(directory, searchPattern, recurseOption);
-            if (matchedFiles.Length == 0 && Verbose) {
+            if (matchedFiles.Length == 0 && Verbose && !DryRun) {
               Console.Out.WriteLine("Warning: No files matched the pattern: {0}", pattern);
             }
             files.AddRange(matchedFiles);
@@ -261,7 +269,7 @@ public class FixEol
             // It's a directory - get all files within it
             try {
               var matchedFiles = Directory.GetFiles(pattern, "*", recurseOption);
-              if (matchedFiles.Length == 0 && Verbose) {
+              if (matchedFiles.Length == 0 && Verbose && !DryRun) {
                 Console.Out.WriteLine("Warning: No files found in directory: {0}", pattern);
               }
               files.AddRange(matchedFiles);
@@ -273,7 +281,7 @@ public class FixEol
             // Doesn't exist as file or directory
             Console.Out.WriteLine("**** The file or directory was not found: {0}", Path.GetFullPath(pattern));
             Console.Out.WriteLine();
-            Console.Out.WriteLine("Type 'FixEol --help' for usage information.");
+            Console.Out.WriteLine("Type 'fixeol --help' for usage information.");
             return 1;
           }
         }
@@ -294,7 +302,7 @@ public class FixEol
         if (!File.Exists(filename)) {
           Console.Out.WriteLine("**** The file was not found: {0}", filename);
           Console.Out.WriteLine();
-          Console.Out.WriteLine("Type 'FixEol --help' for usage information.");
+          Console.Out.WriteLine("Type 'fixeol --help' for usage information.");
           return 1;
         }
 
@@ -304,7 +312,7 @@ public class FixEol
         var curPos = 0.01F;
 
         //Console.CursorVisible = false;
-        if (Verbose) {
+        if (Verbose && !DryRun) {
           Console.WriteLine("Processing file: {0}", filename);
         }
         if (showProgress) {
@@ -312,11 +320,13 @@ public class FixEol
         }
 
         try {
-          if (File.Exists(backupfile)) {
-            File.SetAttributes(backupfile, FileAttributes.Normal);
-            File.Delete(backupfile);
+          if (!DryRun) {
+            if (File.Exists(backupfile)) {
+              File.SetAttributes(backupfile, FileAttributes.Normal);
+              File.Delete(backupfile);
+            }
+            File.Copy(filename, backupfile);
           }
-          File.Copy(filename, backupfile);
         } catch (Exception ex) {
           Console.WriteLine();
           Console.WriteLine("**** ERROR backing up file: " + filename + " \n" + ex.Message);
@@ -328,15 +338,18 @@ public class FixEol
         try {
           // Detect the source file encoding for reading
           // WE ALWAYS detect the source file encoding, even if the user specified an encoding to write with.
+          var sourceFile = DryRun ? filename : backupfile;
           var readEncoding = Encoding.Default;
-          using (var detectStream = File.OpenRead(backupfile)) {
+          using (var detectStream = File.OpenRead(sourceFile)) {
             readEncoding = detectStream.DetectEncoding(Encoding.Default)!;
           }
 
-          using var r = new StreamReader(backupfile, readEncoding);
+          using var r = new StreamReader(sourceFile, readEncoding);
           var nextOutput = DateTime.Now.AddMilliseconds(200);
 
-          using var outStream = File.Create(filename);
+          using Stream outStream = DryRun
+            ? new ComparingStream(File.OpenRead(filename))
+            : File.Create(filename);
           using var writer = new StreamWriter(outStream, writeEncoding);
 
           while (!r.EndOfStream) {
@@ -352,11 +365,17 @@ public class FixEol
             }
           }
 
-          //writer.Flush();
-          //writer.Close();
+          if (DryRun) {
+            // Include buffered bytes and the encoding preamble in the comparison.
+            writer.Flush();
+            if (((ComparingStream)outStream).HasChanges) {
+              Console.WriteLine(filename);
+            }
+            continue;
+          }
         } catch (Exception ex) {
           Console.WriteLine();
-          Console.WriteLine("**** ERROR writing to file: " + filename + " \n" + ex.Message);
+          Console.WriteLine($"**** ERROR {(DryRun ? "checking" : "writing to")} file: {filename} \n{ex.Message}");
           return 101;
         } finally {
           //Console.CursorVisible = true;
@@ -388,7 +407,7 @@ public class FixEol
         }
       }
 
-      if (Verbose) {
+      if (Verbose && !DryRun) {
         Console.Out.WriteLine();
       }
     } finally {

@@ -4,10 +4,10 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <PackageId>fixeol</PackageId>
-    <AssemblyName>FixEol</AssemblyName>
-    <AssemblyTitle>FixEol</AssemblyTitle>
-    <Product>Bricksoft.PowerTools</Product>
-    <RootNamespace>FixEol</RootNamespace>
+    <AssemblyName>fixeol</AssemblyName>
+    <AssemblyTitle>fixeol</AssemblyTitle>
+    <Product>fixeol</Product>
+    <RootNamespace>fixeol</RootNamespace>
     <Description>Fixes the EOL (end of line) characters in files.</Description>
     <Company></Company>
     <Copyright>Copyright (c) 2003-2026 Kody Brown</Copyright>
@@ -16,7 +16,7 @@
     <Platforms>AnyCPU;x64;x86</Platforms>
     <StartupObject></StartupObject>
     <Nullable>enable</Nullable>
-    <DefaultItemExcludes>$(DefaultItemExcludes);FixEol.Tests\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);fixeol.tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
