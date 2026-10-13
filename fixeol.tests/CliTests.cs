@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using PowerCode;
 using Xunit;
 
@@ -22,6 +23,7 @@ public class CliTests
     Assert.Contains("-exclude [string[]]", result.Output);
     Assert.Contains("(repeatable)", result.Output);
     Assert.Contains("-dry-run", result.Output);
+    Assert.Contains("Missing paths and unmatched patterns are skipped", Regex.Replace(result.Output, @"\s+", " "));
   }
 
   [Theory]
@@ -101,6 +103,171 @@ public class CliTests
         Assert.Equal(original.Bytes, File.ReadAllBytes(path));
         Assert.Equal(original.WriteTime, File.GetLastWriteTimeUtc(path));
       }
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public void MissingIncludesDoNotPreventProcessingExistingMatches( bool dryRun )
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var nestedDirectory = Directory.CreateDirectory(Path.Combine(tempDirectory.FullName, "src", "nested"));
+      var literalPath = Path.Combine(tempDirectory.FullName, "README.md");
+      var wildcardPath = Path.Combine(tempDirectory.FullName, "build.csproj");
+      var nestedPath = Path.Combine(nestedDirectory.FullName, "sample.cs");
+      var paths = new[] { literalPath, wildcardPath, nestedPath };
+      foreach (var path in paths) {
+        File.WriteAllText(path, "alpha\r\nbeta", new UTF8Encoding(false));
+      }
+
+      var arguments = new List<string> { "--recursive", "--encoding", "utf8", "--eol", "lf" };
+      if (dryRun) {
+        arguments.AddRange(["--dry-run", "--verbose", "--progress"]);
+      }
+      arguments.AddRange([
+        Path.Combine(tempDirectory.FullName, "Makefile"), literalPath,
+        Path.Combine(tempDirectory.FullName, "missing-directory") + Path.DirectorySeparatorChar,
+        Path.Combine(tempDirectory.FullName, "*.csproj"),
+        Path.Combine(tempDirectory.FullName, "absent", "*.txt"),
+        Path.Combine(tempDirectory.FullName, "src"),
+        Path.Combine(tempDirectory.FullName, "*.nomatch")
+      ]);
+
+      var result = RunCli(arguments.ToArray());
+
+      Assert.True(result.ExitCode == 0, result.Output);
+      Assert.Equal(dryRun ? string.Join(Environment.NewLine, paths) + Environment.NewLine : "", result.Output);
+      foreach (var path in paths) {
+        Assert.Equal(dryRun ? "alpha\r\nbeta" : "alpha\nbeta\n", File.ReadAllText(path));
+      }
+      Assert.Equal(paths.Order(), Directory.GetFiles(tempDirectory.FullName, "*", SearchOption.AllDirectories).Order());
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public void NoMatchingIncludesSucceedsWithoutWriting( bool dryRun )
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var emptyDirectory = Directory.CreateDirectory(Path.Combine(tempDirectory.FullName, "empty"));
+      var arguments = new List<string> { "--recursive", "--backup", "--encoding", "utf8", "--eol", "lf" };
+      if (dryRun) {
+        arguments.AddRange(["--dry-run", "--verbose", "--progress"]);
+      }
+      arguments.AddRange([
+        Path.Combine(tempDirectory.FullName, "Makefile"),
+        Path.Combine(tempDirectory.FullName, "missing-directory") + Path.DirectorySeparatorChar,
+        Path.Combine(tempDirectory.FullName, "absent", "*.txt"),
+        Path.Combine(tempDirectory.FullName, "*.nomatch"), emptyDirectory.FullName
+      ]);
+
+      var result = RunCli(arguments.ToArray());
+
+      Assert.True(result.ExitCode == 0, result.Output);
+      Assert.Equal("", result.Output);
+      Assert.Empty(Directory.GetFiles(tempDirectory.FullName, "*", SearchOption.AllDirectories));
+      Assert.Equal(new[] { emptyDirectory.FullName }, Directory.GetDirectories(tempDirectory.FullName));
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Theory]
+  [InlineData("--eol", "invalid", "Makefile")]
+  [InlineData("--encoding", "invalid", "Makefile")]
+  [InlineData("--unknown-option", "Makefile")]
+  [InlineData("-unknown-option", "Makefile")]
+  [InlineData("--eol")]
+  [InlineData("--encoding", "utf8")]
+  public void InvalidArgumentsStillFail( params string[] arguments )
+  {
+    var result = RunCli(arguments);
+
+    Assert.NotEqual(0, result.ExitCode);
+    Assert.NotEmpty(result.Output);
+  }
+
+  [Theory]
+  [InlineData("invalid\0path")]
+  [InlineData("invalid\0path/*.txt")]
+  public void InvalidIncludePathsStillFail( string pattern )
+  {
+    // NUL cannot be passed to a child process, so exercise the entry point directly.
+    Assert.Equal(1, Program.Main([pattern]));
+  }
+
+  [Fact]
+  public void ExistingFileUsedAsWildcardDirectoryStillFails()
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var filePath = Path.Combine(tempDirectory.FullName, "file.txt");
+      File.WriteAllText(filePath, "alpha\r\n");
+
+      var result = RunCli(Path.Combine(tempDirectory.FullName, "Makefile"), Path.Combine(filePath, "*.txt"));
+
+      Assert.Equal(1, result.ExitCode);
+      Assert.Contains("Error searching for files", result.Output);
+      Assert.Equal("alpha\r\n", File.ReadAllText(filePath));
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public void ReadFailuresStillFailWithMissingIncludes( bool dryRun )
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var filePath = Path.Combine(tempDirectory.FullName, "locked.txt");
+      File.WriteAllText(filePath, "alpha\r\n");
+      using var locked = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+      var arguments = new List<string> { "--encoding", "utf8", "--eol", "lf" };
+      if (dryRun) {
+        arguments.Add("--dry-run");
+      }
+      arguments.AddRange([Path.Combine(tempDirectory.FullName, "Makefile"), filePath]);
+
+      var result = RunCli(arguments.ToArray());
+
+      Assert.NotEqual(0, result.ExitCode);
+      Assert.Contains("ERROR", result.Output);
+      Assert.Contains(filePath, result.Output);
+    } finally {
+      tempDirectory.Delete(true);
+    }
+  }
+
+  [Fact]
+  public void WriteFailuresStillFailWithMissingIncludes()
+  {
+    var tempDirectory = Directory.CreateTempSubdirectory("fixeol-tests-");
+
+    try {
+      var filePath = Path.Combine(tempDirectory.FullName, "sample.txt");
+      File.WriteAllText(filePath, "alpha\r\n");
+      // A directory at the backup destination makes the required write fail on every platform.
+      Directory.CreateDirectory(filePath + ".original");
+
+      var result = RunCli("--eol", "lf", Path.Combine(tempDirectory.FullName, "Makefile"), filePath);
+
+      Assert.NotEqual(0, result.ExitCode);
+      Assert.Contains("ERROR backing up file", result.Output);
+      Assert.Equal("alpha\r\n", File.ReadAllText(filePath));
     } finally {
       tempDirectory.Delete(true);
     }

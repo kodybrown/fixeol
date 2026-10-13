@@ -25,6 +25,24 @@ fixeol [options] "file-patterns" ["file-patterns"] [...]
 
 File patterns can be specific files, directories, or wildcards. Use `--recursive`, `-r`, or `-s` to apply patterns to subdirectories.
 
+Includes are optional by default: missing literal files or directories, patterns whose
+parent directory is missing, and wildcards with no matches are skipped. Existing
+matches are still processed. If no files match (or all matches are excluded), fixeol
+does nothing and returns exit code 0. This also applies to `--dry-run`.
+
+For example, a shared normalization task can include `Makefile` even in repositories
+that do not have one:
+
+```console
+fixeol --recursive --eol lf --encoding utf8 Makefile "*.cs" "*.csproj"
+```
+
+At least one include argument is still required. Invalid arguments or paths and real
+directory enumeration, access, read, or write failures remain errors with nonzero
+exit codes.
+Unknown options are errors; prefix a file name beginning with `-` with `./`
+(for example, `./-notes.txt`) so it is treated as a path.
+
 ## Options
 
 - `--eol [os|crlf|cr|lf|\r\n|\r|\n]` chooses the output line ending. The default is `os`.

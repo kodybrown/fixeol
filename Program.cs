@@ -164,7 +164,7 @@ public class Program
   /// </summary>
   [UnhandledArguments(
     name: "file-patterns",
-    description: "File patterns to process (files, directories, or wildcards).",
+    description: "File patterns to process (files, directories, or wildcards). Missing paths and unmatched patterns are skipped; no matches succeeds.",
     required: true
   )]
   public List<string> FilePatterns { get; set; } = [];
@@ -225,65 +225,48 @@ public class Program
       // - `fixeol.exe MyFolder\Subfolder` - processes all files in the specified relative directory (but not sub-directories)
       // - `fixeol.exe /r MyFolder\Subfolder\*.cs` - processes all .cs files in the specified relative directory and its sub-directories
       foreach (var pattern in FilePatterns) {
-        var hasWildcard = pattern.IndexOfAny(['*', '?']) > -1;
+        try {
+          var hasWildcard = ContainsWildcard(pattern);
 
-        if (hasWildcard) {
-          // Pattern contains wildcards - extract directory and search pattern
-          var directory = Path.GetDirectoryName(pattern);
-          var searchPattern = Path.GetFileName(pattern);
+          if (hasWildcard) {
+            // Wildcards apply to file names within the specified directory.
+            var directory = Path.GetDirectoryName(pattern);
+            var searchPattern = Path.GetFileName(pattern);
+            if (string.IsNullOrEmpty(directory)) {
+              directory = ".";
+            }
+            if (string.IsNullOrEmpty(searchPattern)) {
+              searchPattern = "*";
+            }
 
-          if (string.IsNullOrEmpty(directory)) {
-            // If no directory specified, use current directory
-            directory = ".";
-          }
+            if (GetIncludeAttributes(directory) is null) {
+              continue;
+            }
 
-          if (string.IsNullOrEmpty(searchPattern)) {
-            // If no search pattern (e.g., "C:\MyFolder\"), default to "*"
-            searchPattern = "*";
-          }
-
-          // Verify directory exists
-          if (!Directory.Exists(directory)) {
-            Console.Out.WriteLine("**** The directory was not found: {0}", Path.GetFullPath(directory));
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("Type 'fixeol --help' for usage information.");
-            return 1;
-          }
-
-          try {
             var matchedFiles = Directory.GetFiles(directory, searchPattern, recurseOption);
             if (matchedFiles.Length == 0 && Verbose && !DryRun) {
               Console.Out.WriteLine("Warning: No files matched the pattern: {0}", pattern);
             }
             files.AddRange(matchedFiles);
-          } catch (Exception ex) {
-            Console.Out.WriteLine("**** Error searching for files with pattern '{0}': {1}", pattern, ex.Message);
-            return 1;
-          }
-        } else {
-          // No wildcard - could be a specific file or directory
-          if (File.Exists(pattern)) {
-            // It's a file
-            files.Add(pattern);
-          } else if (Directory.Exists(pattern)) {
-            // It's a directory - get all files within it
-            try {
+          } else {
+            var attributes = GetIncludeAttributes(pattern);
+            if (attributes is null) {
+              continue;
+            }
+
+            if ((attributes.Value & FileAttributes.Directory) == 0) {
+              files.Add(pattern);
+            } else {
               var matchedFiles = Directory.GetFiles(pattern, "*", recurseOption);
               if (matchedFiles.Length == 0 && Verbose && !DryRun) {
                 Console.Out.WriteLine("Warning: No files found in directory: {0}", pattern);
               }
               files.AddRange(matchedFiles);
-            } catch (Exception ex) {
-              Console.Out.WriteLine("**** Error reading directory '{0}': {1}", pattern, ex.Message);
-              return 1;
             }
-          } else {
-            // Doesn't exist as file or directory
-            Console.Out.WriteLine("**** The file or directory was not found: {0}", Path.GetFullPath(pattern));
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("Type 'fixeol --help' for usage information.");
-            return 1;
           }
+        } catch (Exception ex) {
+          Console.Out.WriteLine("**** Error searching for files with pattern '{0}': {1}", pattern, ex.Message);
+          return 1;
         }
       }
 
@@ -419,6 +402,19 @@ public class Program
     }
 
     return 0;
+  }
+
+  private static FileAttributes? GetIncludeAttributes( string path )
+  {
+    // Only missing include roots are optional. Unlike Exists(), GetAttributes() lets
+    // invalid paths and access failures propagate; enumeration and file I/O still fail normally.
+    try {
+      return File.GetAttributes(path);
+    } catch (FileNotFoundException) {
+      return null;
+    } catch (DirectoryNotFoundException) {
+      return null;
+    }
   }
 
   private static void TrySetCursorLeft( int left )

@@ -507,6 +507,13 @@ public class CliArgumentBinder
         continue;
       }
 
+      // Unknown options must not become optional include paths and silently succeed.
+      if (is_flag) {
+        Console.WriteLine($"Unknown argument: {_arguments[i]}");
+        exit_code = -110;
+        break;
+      }
+
       if (everythingElseProp != null) {
         // If we have an "everything else" property, handle it based on its type
         if (everythingElseProp.PropertyType == typeof(string)) {
