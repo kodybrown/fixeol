@@ -70,18 +70,21 @@ On Windows, options can use `-`, `--`, or `/` prefixes. Use `!` to turn off a bo
 ## Publishing on Windows
 
 Run `publish.bat` to publish the framework-dependent `win-x64` Release build.
-The script uses MSBuild's evaluated `PublishDir`; it does not override the output
-directory with `-o`. Under the user-level build policy, output stays beneath
-`C:\tmp\_dotnet` rather than inside the source checkout.
+It invokes `publish.ps1`, which uses MSBuild's evaluated `PublishDir` without an
+`-o` override. Under the user-level build policy, build and publish output stays
+beneath `C:\tmp\_dotnet`.
+
+After a successful publish, the script copies the complete output into
+`artifacts/releases/<Version>/win-x64/` in this checkout. `Version` comes from
+MSBuild (currently `3.21.2602.2511`). This release copy is ignored by Git. Repeated
+runs overwrite matching files without deleting other files in the release folder.
+Publish, metadata lookup, and copy failures return a nonzero exit code.
 
 To inspect the destination for this checkout:
 
 ```powershell
 dotnet msbuild fixeol.csproj -p:Configuration=Release -p:RuntimeIdentifier=win-x64 -getProperty:PublishDir
 ```
-
-The optional installation block is commented out. If enabled, it must copy from
-the evaluated `PublishDir` into `%UserProfile%\Bin\apps\fixeol`.
 
 ## Environment Variables
 

@@ -1,0 +1,6 @@
+version: 1
+name: fixeol
+description: fixeol normalizes line endings for one or more files, directories, or wildcard patterns
+settings:
+  project: fixeol.csproj
+  solution: fixeol.slnx

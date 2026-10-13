@@ -1,21 +1,7 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Project-specific ignores
-**/.code_compare
-**/.ground_zero
-**/notes*.md
-**/todo*.md
-**/CodeSnapshot.txt
-
-publish/
-**/*.bak
-**/*.original
-**/*.backup-*
-
-# System files
-**/.DS_Store
-**/[Tt]humbs.db
-**/[Dd]esktop.ini
+/*[Nn]otes*.md
+/artifacts/releases/
 
 # Visual Studio
 **/.vs/
@@ -23,23 +9,3 @@ publish/
 **/[Oo]bj/
 **/*.suo
 **/*.user
-
-# Test tools
-**/coverage/
-
-# Angular
-**/.angular/cache/
-**/typings/
-
-# Node
-**/node_modules/
-**/npm-debug.log*
-
-# Compiled output
-**/dist/
-**/tmp/
-**/.sass-cache/
-
-# Logs
-**/logs/
-**/*.log
