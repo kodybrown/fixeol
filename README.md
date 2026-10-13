@@ -67,6 +67,22 @@ Unknown options are errors; prefix a file name beginning with `-` with `./`
 
 On Windows, options can use `-`, `--`, or `/` prefixes. Use `!` to turn off a boolean option from the command line, for example `--!verbose`.
 
+## Publishing on Windows
+
+Run `publish.bat` to publish the framework-dependent `win-x64` Release build.
+The script uses MSBuild's evaluated `PublishDir`; it does not override the output
+directory with `-o`. Under the user-level build policy, output stays beneath
+`C:\tmp\_dotnet` rather than inside the source checkout.
+
+To inspect the destination for this checkout:
+
+```powershell
+dotnet msbuild fixeol.csproj -p:Configuration=Release -p:RuntimeIdentifier=win-x64 -getProperty:PublishDir
+```
+
+The optional installation block is commented out. If enabled, it must copy from
+the evaluated `PublishDir` into `%UserProfile%\Bin\apps\fixeol`.
+
 ## Environment Variables
 
 Command-line arguments override environment variables. Use semicolons to separate multiple `fixeol_exclude` patterns.
