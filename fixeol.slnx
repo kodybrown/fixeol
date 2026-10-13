@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="fixeol.csproj" />
   <Project Path="fixeol.tests/fixeol.tests.csproj" />
 </Solution>

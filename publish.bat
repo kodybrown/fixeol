@@ -7,8 +7,6 @@ set "Runtime=win-x64"
 cd /d "%~dp0"
 if errorlevel 1 exit /b %errorlevel%
 
-echo dotnet publish ".\%AppName%.csproj" -c %Configuration% -r %Runtime% --self-contained false
-
 dotnet publish ".\%AppName%.csproj" -c %Configuration% -r %Runtime% --self-contained false
 
 if errorlevel 1 exit /b %errorlevel%
