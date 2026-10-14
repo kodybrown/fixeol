@@ -4,3 +4,17 @@ description: fixeol normalizes line endings for one or more files, directories, 
 settings:
   project: fixeol.csproj
   solution: fixeol.slnx
+  publish:
+    project-directory: src
+    project-prefix: Spark.
+    release-directory: artifacts/releases
+    required-documents:
+      - README.md
+      - LICENSE.md
+  app:
+    version: "3.21.yyMM.ddhh"
+    git-hash: short
+    dirty-suffix: true
+  installer:
+    config: .tasks/installer.yaml
+    output: artifacts/installers
