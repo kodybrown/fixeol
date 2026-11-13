@@ -34,13 +34,13 @@
   <!-- Version Information -->
   <PropertyGroup>
     <!-- Package/product version (SemVer). -->
-    <Version>3.21.2602.2511</Version>
+    <Version>3.22.2611.1312</Version>
     <!-- Assembly binding version: keep stable; bump only on breaking changes. -->
     <AssemblyVersion>3.0.0.0</AssemblyVersion>
     <!-- Win32 file version (4-part). Usually matches Version numerically. -->
-    <FileVersion>3.21.2602.2511</FileVersion>
+    <FileVersion>3.22.2611.1312</FileVersion>
     <!-- Human-readable version (can include pre-release/build metadata). -->
-    <InformationalVersion>3.21.2602.2511+$(SourceRevisionId)</InformationalVersion>
+    <InformationalVersion>3.22.2611.1312+$(SourceRevisionId)</InformationalVersion>
   </PropertyGroup>
 
   <!-- Publish Settings -->
