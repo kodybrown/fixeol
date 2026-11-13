@@ -4,23 +4,28 @@ directory: .tasks
 tasks:
   _/doinstall/assemble:
     source: _
-    revision: bde889accc868cee771ee2fb00cf0b8a1858697457de7c8d9e9aa15aa47eba9a
+    revision: b50c0f1db33cbd8e2be8fc7a1e9d99563011c74bdadbfecbd22a9fd2cd79c11a
     requires: []
     files:
-      _/doinstall/assemble.task: fdd13b61b78d2340df2dbfd8d95abd97db131367b513cddd75590b25c2c0287b
+      _/doinstall/assemble.task: 63db1313daab580f921974fe7213c312c0c0503da3e96a7a4c5342747b3cfc7d
+  _/doinstall/assemble-self-extracting:
+    source: _
+    revision: 5587f22bfe95d42859966a703d897490b8265f2e9bf328c1423c1b56295c4a92
+    requires: []
+    files:
+      _/doinstall/assemble-self-extracting.task: 37ab24b43a7a016dcbcaaf043d59c263a983e810fbe1785986a01c65f168692c
   _/doinstall/build:
     source: _
-    revision: a1bcd781795257dee23cd39d1bfea605abe969570701fcef61894498ff745f99
+    revision: 19cad1cf5fcf46f6d6bcedae9011af1a0e6b902c4833725eda854997bc3fdbb2
     requires: []
     files:
-      _/doinstall/build.rs: 6088d3d9755eb455cb1c6c775bc4c1d28988ad9370049891b10cbf6d521ac708
+      _/doinstall/build.rs: ec6faaf44a86f7688e505bb0c8e229924fffa015aa1ac3a6b12b014084993fc8
   _/doinstall/create-installer:
     source: _
-    revision: 934aa442b98e69cbe39579a0ba17b4aeb5baf45ee2be883d2d28fb3dace60272
+    revision: 30b8ca4e6a55496cb47067e4483cb934d37b89f3239788df6a2842864c835cf3
     requires: []
     files:
-      _/doinstall/_support/BuildInfo.rs: ded06f91dc24d7237c3fde290ed12f5ce20eecf9263b87244f35eb8e2149ba53
-      _/doinstall/create-installer.rs: 9068a2b475eea9b0c3d87c2bf601bda611b16767810096881b97bd6a79216088
+      _/doinstall/create-installer.task: 5c2661477f9bde05a6bbc8bd73acbb0abf1c475d2cabf7bb33837a4905071418
   _/doinstall/uninstall:
     source: _
     revision: 0d7e8b9c8897d89974fd096630d61f5369268f8ea9595e22f06e0c406cb429e8
@@ -29,11 +34,11 @@ tasks:
       _/doinstall/uninstall.rs: 5ebf40c0fda9a4814dfdcf07992e12ed9be04b8130aba9ae858ba699c2ca997a
   _/dotnet/build:
     source: _
-    revision: cc76d3c4dd98f80804478d46a4d45cd04b0a55a67b3ae9e7066ba8417c2c41ac
+    revision: 725bc068c392b7ffa58c9dbf60dff9df7e82d2cfdb7bcd058116325b20c4d59f
     requires:
     - _/dotnet/restore
     files:
-      _/dotnet/build.cs: d35b521ca6edf3ed694befcf40b79418f868edcb5ad50e26dee5591db4cced2c
+      _/dotnet/build.cs: db1b8363f011529932d39e9d0913fa88c717df641023fa0a816bce3fa2f7b49f
   _/dotnet/check:
     source: _
     revision: e9fe28a0df01a3a4887f697e42e80b2f7cd108353a7c44eaca7bbcb538e8f754
@@ -48,10 +53,10 @@ tasks:
       _/dotnet/clean.cs: 4b48b8f526170f8625964228fdef1da681167e03dd7f452f0b635146443e3ae7
   _/dotnet/format:
     source: _
-    revision: 8f2a6ade89f6caad4a4a41fd7de40fbe483aa1974b9b5ebc6b587e0d923b5205
+    revision: 3eb017cb446c14d5c2f29e2b73c662613d2e3ecc7731e584a8035a30923718e3
     requires: []
     files:
-      _/dotnet/format.cs: 66bdc61917afbb0bd23b7fe2b3287ff7ae13a1730ae69e1d1726afc7cbe6fd4a
+      _/dotnet/format.cs: 1a699dd9eb0529ff4d21d6d0bb1453867548ce1740191132a85f6125c088cc35
   _/dotnet/pack:
     source: _
     revision: f40c8739b60d7f8e8d8aabc8a807c5400e6b8ae9f72585150b71380faeeffc11
@@ -78,10 +83,18 @@ tasks:
       _/dotnet/run.cs: 2124db02f0edbc992a529c5c66f7845afa4d3646d6e1c9825e6e9e92b1d64cc6
   _/dotnet/test:
     source: _
-    revision: 731b28002dded5550b483298c9300a10d928b976afbeb7ae955f89aca4320a2d
+    revision: 4bdcf78081a69089e7e367e9b8e7dedb6d8aca47bab6f0acaffda65cd1ef1fc3
     requires: []
     files:
-      _/dotnet/test.cs: d18d951e0ce829437b6dacf05cd43012f1970aaf487b0a4205a9e03683fcef55
+      _/dotnet/_support/TestProcess.cs: a1dc199e3d0762bd4f617725a20cac625657e2623385457e938d35f475038ebc
+      _/dotnet/test.cs: a668f634e58aefa93f66c23ec25bae0c5d93dcbe11ec8ba910b74e68908e2f8a
+  _/dotnet/update-version:
+    source: _
+    revision: a67ea4eda781aadc685c269e2e14d59a0f837cbf4382521d0093487dafbb4ce1
+    requires: []
+    files:
+      _/dotnet/_support/CalendarVersion.cs: d27e14abd6edbf9af168e95018d97e5d14099ed7bf70041ad6daa7fa61ecaee7
+      _/dotnet/update-version.cs: ece5a4e690c41cbd61bde84225fac07a1be1f450036eb29f845859eaea6cc41e
   _/dotnet/verify:
     source: _
     revision: dcaea04dc08f6719167d5a6e20dd830e6544e26f128398efa8d81df53b42be3b
